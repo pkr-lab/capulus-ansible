@@ -16,3 +16,4 @@ kubeconfig*
 vault-password*
 *.sqlite
 .cache/
+dist/

@@ -207,3 +207,7 @@ vaultwarden-restore: ## Vaultwarden-Daten aus der NAS-Backup-PVC wiederherstelle
 .PHONY: clean
 clean: ## Remove cached collections and temp artifacts.
 	rm -rf ~/.ansible/collections/ansible_collections/{ansible,community,kubernetes}
+
+.PHONY: hooks
+hooks: ## Install the commit-msg hook (Conventional Commits).
+	git config core.hooksPath .githooks
