@@ -66,7 +66,7 @@
     fail_msg: >-
       Der Fingerprint von /etc/apt/keyrings/crowdsec_crowdsec-archive-keyring.gpg weicht von
       crowdsec_repo_key_fingerprint ab. Schlüssel nicht vertrauen, Ursache klären
-      (docs/6-hintergruende/60020-ansible-rollen.md, Abschnitt Installer und Prüfsummen).
+      (https://github.com/pkr-lab/pkr-lab-docs/blob/main/capulus-ansible/6-hintergruende/60020-ansible-rollen.md, Abschnitt Installer und Prüfsummen).
   when: crowdsec_key_info.stdout is defined
 
 - name: Write CrowdSec APT repository
@@ -166,5 +166,5 @@
     msg: >
       WARNING: `cscli bouncers list` returned no registered bouncer.
       crowdsec-firewall-bouncer likely failed to auto-register — check
-      `journalctl -u crowdsec-firewall-bouncer` and docs/d-sicherheit/d0020-crowdsec.md.
+      `journalctl -u crowdsec-firewall-bouncer` and https://github.com/pkr-lab/pkr-lab-docs/blob/main/capulus-ansible/d-sicherheit/d0020-crowdsec.md.
   when: "'[]' in crowdsec_bouncers.stdout"
