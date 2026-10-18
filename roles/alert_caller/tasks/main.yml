@@ -13,7 +13,7 @@
         fail_msg: >-
           alert_caller_sip_password muss im Vault stehen (Passwort ohne ; und "),
           alert_caller_call_targets braucht echte SIP-Adressen
-          (docs/1-benachrichtigungen/10020-telefon-alarm.md, Abschnitt Vault-Variablen).
+          (https://github.com/pkr-lab/pkr-lab-docs/blob/main/capulus-core/1-benachrichtigungen/10020-telefon-alarm.md, Abschnitt Vault-Variablen).
         quiet: true
 
     - name: Zugriffsschutz prüfen
@@ -24,7 +24,7 @@
           - alert_caller_token is not search('\s')
         fail_msg: >-
           alert_caller_auth_mode ist log oder enforce, enforce braucht alert_caller_token
-          (Vault-Variable vault_alert_caller_token, docs/1-benachrichtigungen/10020-telefon-alarm.md).
+          (Vault-Variable vault_alert_caller_token, https://github.com/pkr-lab/pkr-lab-docs/blob/main/capulus-core/1-benachrichtigungen/10020-telefon-alarm.md).
         quiet: true
 
     - name: Pakete installieren (Sprachausgabe, Build von baresip, Firewall)
