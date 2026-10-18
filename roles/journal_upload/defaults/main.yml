@@ -5,7 +5,7 @@ journal_upload_state_dir: /var/lib/private/systemd/journal-upload
 
 journal_upload_push_url: "https://logs-write.tech.homeserver:443/insert/journald"
 
-journal_upload_ca_src: "{{ playbook_dir }}/../docs/assets/homeserver-root-ca.pem"
+journal_upload_ca_src: "{{ playbook_dir }}/files/homeserver-root-ca.pem"
 journal_upload_ca_dest: /usr/local/share/ca-certificates/homeserver-root-ca.crt
 
 journal_upload_hosts_entry_enabled: true

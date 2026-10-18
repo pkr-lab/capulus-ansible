@@ -1,11 +1,10 @@
-ANSIBLE_DIR := ansible
-INVENTORY   := $(ANSIBLE_DIR)/inventory/hosts.yml
-PLAYBOOK    := $(ANSIBLE_DIR)/site.yml
+INVENTORY   := inventory/hosts.yml
+PLAYBOOK    := site.yml
 VAULT_OPTS  ?= --ask-vault-pass
-HS2_PLAYBOOK := $(ANSIBLE_DIR)/worker-0.yml
-HS3_PLAYBOOK := $(ANSIBLE_DIR)/worker-1.yml
-ENTW_PLAYBOOK := $(ANSIBLE_DIR)/entw.yml
-PROD_PLAYBOOK := $(ANSIBLE_DIR)/prod.yml
+HS2_PLAYBOOK := worker-0.yml
+HS3_PLAYBOOK := worker-1.yml
+ENTW_PLAYBOOK := entw.yml
+PROD_PLAYBOOK := prod.yml
 
 .DEFAULT_GOAL := help
 
@@ -15,7 +14,7 @@ help: ## Show this help.
 
 .PHONY: deps
 deps: ## Install required Ansible Galaxy collections.
-	ansible-galaxy collection install -r $(ANSIBLE_DIR)/requirements.yml
+	ansible-galaxy collection install -r requirements.yml
 
 .PHONY: ping
 ping: ## Verify Ansible can reach the server.
@@ -32,8 +31,8 @@ ssh-hardening: ## Apply the ssh_hardening role (key-only SSH) on homeserver, wor
 	ansible-playbook -i $(INVENTORY) $(HS3_PLAYBOOK) --tags ssh-hardening $(VAULT_OPTS)
 	ansible-playbook -i $(INVENTORY) $(PROD_PLAYBOOK) --tags ssh-hardening $(VAULT_OPTS)
 	ansible-playbook -i $(INVENTORY) $(ENTW_PLAYBOOK) --tags ssh-hardening $(VAULT_OPTS)
-	ansible-playbook -i $(INVENTORY) $(ANSIBLE_DIR)/banana-pi-kiosks.yml --tags ssh-hardening $(VAULT_OPTS)
-	ansible-playbook -i $(INVENTORY) $(ANSIBLE_DIR)/xibo-kiosks.yml --tags ssh-hardening $(VAULT_OPTS)
+	ansible-playbook -i $(INVENTORY) banana-pi-kiosks.yml --tags ssh-hardening $(VAULT_OPTS)
+	ansible-playbook -i $(INVENTORY) xibo-kiosks.yml --tags ssh-hardening $(VAULT_OPTS)
 
 .PHONY: install
 install: deps ## Provision the home server end-to-end.
@@ -135,7 +134,7 @@ worker-apt-update: ## Manuelles apt-Update auf worker-0 + worker-1 (läuft norma
 	ansible-playbook -i $(INVENTORY) $(HS3_PLAYBOOK) --tags apt-update $(VAULT_OPTS)
 
 .PHONY: alarm-kiosks alarm-kiosks-check
-ALARM_PLAYBOOK := $(ANSIBLE_DIR)/alarm-kiosks.yml
+ALARM_PLAYBOOK := alarm-kiosks.yml
 
 alarm-kiosks: ## Alarmmonitor-Kiosks einrichten (Raspberry Pis, ALAMOS AMweb).
 	ansible-playbook -i $(INVENTORY) $(ALARM_PLAYBOOK) $(VAULT_OPTS)
@@ -144,7 +143,7 @@ alarm-kiosks-check: ## Dry-run des Alarmmonitor-Kiosk-Playbooks (keine Änderung
 	ansible-playbook -i $(INVENTORY) $(ALARM_PLAYBOOK) --check --diff $(VAULT_OPTS)
 
 .PHONY: xibo-kiosks xibo-kiosks-check
-XIBO_PLAYBOOK := $(ANSIBLE_DIR)/xibo-kiosks.yml
+XIBO_PLAYBOOK := xibo-kiosks.yml
 
 xibo-kiosks: ## xibosignage-Displays einrichten (Raspberry Pi 3B+, Bilder-Slideshow, Tailscale).
 	ansible-playbook -i $(INVENTORY) $(XIBO_PLAYBOOK) $(VAULT_OPTS)
@@ -153,7 +152,7 @@ xibo-kiosks-check: ## Dry-run des xibosignage-Displays-Playbooks (keine Änderun
 	ansible-playbook -i $(INVENTORY) $(XIBO_PLAYBOOK) --check --diff $(VAULT_OPTS)
 
 .PHONY: banana-pi-kiosks banana-pi-kiosks-check banana-pi-kiosks-restart-session
-BANANA_PI_PLAYBOOK := $(ANSIBLE_DIR)/banana-pi-kiosks.yml
+BANANA_PI_PLAYBOOK := banana-pi-kiosks.yml
 
 banana-pi-kiosks: ## Banana-Pi-Alarmmonitore einrichten (Armbian, ALAMOS AMweb + Server-Fallback).
 	ansible-playbook -i $(INVENTORY) $(BANANA_PI_PLAYBOOK) $(VAULT_OPTS)
@@ -165,7 +164,7 @@ banana-pi-kiosks-restart-session: ## tty1-Session auf den Banana-Pi-Alarmmonitor
 	ansible -i $(INVENTORY) banana_pis -m ansible.builtin.systemd -a "name=getty@tty1.service state=restarted" --become
 
 .PHONY: alert-caller alert-caller-check alert-caller-pi alert-caller-pi-check
-ALERT_CALLER_PLAYBOOK := $(ANSIBLE_DIR)/alert-caller.yml
+ALERT_CALLER_PLAYBOOK := alert-caller.yml
 
 alert-caller: ## Telefon-Alarmierung einrichten (alert-caller: baresip, Piper, Tailscale auf der externen VM).
 	ansible-playbook -i $(INVENTORY) $(ALERT_CALLER_PLAYBOOK) $(VAULT_OPTS)
@@ -180,38 +179,26 @@ alert-caller-pi-check: ## Dry-run des Pi-Notfall-Callers (keine Änderungen).
 	ansible-playbook -i $(INVENTORY) $(ALERT_CALLER_PLAYBOOK) --limit alert_caller_pi --check --diff $(VAULT_OPTS)
 
 .PHONY: lint
-lint: ## Lint YAML, Ansible, and ALL Helm charts.
-	yamllint -c .yamllint ansible/ argocd/
-	ansible-lint $(ANSIBLE_DIR)/
-	@if command -v helm >/dev/null; then \
-	    for chart in argocd/apps/*/*/; do \
-	        [ -f "$${chart}Chart.yaml" ] || continue; \
-	        if grep -q '^dependencies:' "$${chart}Chart.yaml"; then \
-	            echo "==> helm dependency build $${chart}"; \
-	            helm dependency build "$${chart}" || helm dependency update "$${chart}"; \
-	        fi; \
-	        echo "==> helm lint $${chart}"; \
-	        helm lint "$${chart}"; \
-	    done; \
-	else \
-	    echo "helm not installed — skipping chart lint"; \
-	fi
+lint: ## Lint YAML and Ansible.
+	yamllint -c .yamllint .
+	ansible-lint
 
 .PHONY: render-bootstrap
-render-bootstrap: ## Regenerate argocd/bootstrap/root-applicationset.yaml from the role template.
-	ansible-playbook $(ANSIBLE_DIR)/render-bootstrap.yml --connection local $(VAULT_OPTS)
+CORE_DIR ?=
+render-bootstrap: ## Regenerate argocd/bootstrap/ in a capulus-core checkout: make render-bootstrap CORE_DIR=/path/to/capulus-core
+	ansible-playbook render-bootstrap.yml --connection local -e capulus_core_dir=$(CORE_DIR)
 
 .PHONY: vault-edit
 vault-edit: ## Edit the vault-encrypted vars file.
-	ansible-vault edit $(ANSIBLE_DIR)/group_vars/all.yml
+	ansible-vault edit group_vars/all.yml
 
 .PHONY: user-inventory-edit
-USER_INVENTORY_FILE := $(ANSIBLE_DIR)/group_vars/user_inventory_vault.yml
+USER_INVENTORY_FILE := group_vars/user_inventory_vault.yml
 user-inventory-edit: ## Edit the encrypted Immich/Vaultwarden user inventory (docs/4-planung/40080, Baustein 7). First run: ansible-vault create $(USER_INVENTORY_FILE).
 	ansible-vault edit $(USER_INVENTORY_FILE)
 
 .PHONY: vaultwarden-restore
-VAULTWARDEN_RESTORE_PLAYBOOK := $(ANSIBLE_DIR)/vaultwarden-restore.yml
+VAULTWARDEN_RESTORE_PLAYBOOK := vaultwarden-restore.yml
 FORCE_RESTORE ?= false
 
 vaultwarden-restore: ## Vaultwarden-Daten aus der NAS-Backup-PVC wiederherstellen (ueberschreibt Live-Daten!). Erst mit FORCE_RESTORE=true bestaetigen.

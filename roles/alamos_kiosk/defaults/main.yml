@@ -1,6 +1,8 @@
 ---
 alamos_kiosk_enabled: true
 
+alamos_kiosk_ca_src: "{{ playbook_dir }}/files/homeserver-root-ca.pem"
+
 alamos_kiosk_base_url: "https://alamos-apager.prod.homeserver"
 
 alamos_kiosk_heartbeat_interval: 60

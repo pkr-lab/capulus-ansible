@@ -6,14 +6,21 @@
   vars_files:
     - "{{ playbook_dir }}/roles/argocd/defaults/main.yml"
   tasks:
+    - name: Zielverzeichnis des capulus-core-Klons prüfen
+      ansible.builtin.assert:
+        that:
+          - capulus_core_dir is defined
+          - capulus_core_dir | length > 0
+        fail_msg: "capulus_core_dir fehlt: make render-bootstrap CORE_DIR=/pfad/zu/capulus-core"
+
     - name: Render argocd/bootstrap/root-applicationset.yaml from the role template
       ansible.builtin.template:
         src: "{{ playbook_dir }}/roles/argocd/templates/bootstrap-applicationset.yaml.j2"
-        dest: "{{ playbook_dir }}/../argocd/bootstrap/root-applicationset.yaml"
+        dest: "{{ capulus_core_dir }}/argocd/bootstrap/root-applicationset.yaml"
         mode: "0644"
 
     - name: Render argocd/bootstrap/projects.yaml from the role template
       ansible.builtin.template:
         src: "{{ playbook_dir }}/roles/argocd/templates/bootstrap-appprojects.yaml.j2"
-        dest: "{{ playbook_dir }}/../argocd/bootstrap/projects.yaml"
+        dest: "{{ capulus_core_dir }}/argocd/bootstrap/projects.yaml"
         mode: "0644"

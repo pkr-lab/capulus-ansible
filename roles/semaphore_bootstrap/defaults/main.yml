@@ -3,6 +3,8 @@ semaphore_api_base: "https://semaphore-api.tech.homeserver"
 
 semaphore_namespace: semaphore
 
+semaphore_ansible_repo_url: "https://github.com/pkr-lab/capulus-ansible.git"
+
 semaphore_admin_password_path: "/etc/semaphore-secrets/admin_password"
 semaphore_admin_username: admin
 
@@ -34,7 +36,7 @@ semaphore_projects:
     description: "Deploy / re-provision the home-server itself."
     repository:
       name: home-server-git
-      url: "{{ argocd_repo_url }}"
+      url: "{{ semaphore_ansible_repo_url }}"
       branch: main
     environments:
       - "{{ semaphore_default_environment }}"
@@ -51,7 +53,7 @@ semaphore_projects:
           worker-1 ansible_host=192.168.178.96
     templates:
       - name: "Deploy Home Server"
-        playbook: ansible/site.yml
+        playbook: site.yml
         inventory: homeservers
         environment: default-env
         vault_key: vault-password
@@ -66,7 +68,7 @@ semaphore_projects:
     description: "Deploy k3s-Agent + Watchdogs auf worker-0 (192.168.178.95)."
     repository:
       name: home-server-git
-      url: "{{ argocd_repo_url }}"
+      url: "{{ semaphore_ansible_repo_url }}"
       branch: main
     environments:
       - "{{ semaphore_default_environment }}"
@@ -79,7 +81,7 @@ semaphore_projects:
           worker-0 ansible_host=192.168.178.95
     templates:
       - name: "Deploy worker-0"
-        playbook: ansible/worker-0.yml
+        playbook: worker-0.yml
         inventory: worker_0_only
         environment: default-env
         vault_key: vault-password

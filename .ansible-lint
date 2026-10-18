@@ -4,4 +4,3 @@ skip_list:
   - name[casing]
   - var-naming[no-role-prefix]
   - name[template]
-

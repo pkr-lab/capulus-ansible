@@ -35,6 +35,7 @@
   ansible.builtin.command: >-
     gpg --homedir {{ crowdsec_gnupg_home.path }} --dearmor
     --output /etc/apt/keyrings/crowdsec_crowdsec-archive-keyring.gpg /tmp/crowdsec-repo.gpgkey
+  changed_when: true
   when: not crowdsec_keyring.stat.exists
 
 - name: Remove downloaded CrowdSec repository key

@@ -1,0 +1,11 @@
+title = "capulus-ansible"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Fingerprints oeffentlicher APT-Signaturschluessel sind keine Secrets"
+regexTarget = "line"
+regexes = [
+  '''_key_fingerprint: "[0-9A-Fa-f]{40}"''',
+]

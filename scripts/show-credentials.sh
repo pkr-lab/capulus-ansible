@@ -61,9 +61,9 @@ if hasattr(yaml, 'SafeLoader'):
 decrypt = sys.argv[1].lower() == "true"
 root = Path(sys.argv[2])
 
-paths = [root / "ansible/group_vars/all.yml"]
-paths += sorted(root.glob("ansible/host_vars/*/vars.yml"))
-paths += sorted(root.glob("ansible/host_vars/*/vault.yml"))
+paths = [root / "group_vars/all.yml"]
+paths += sorted(root.glob("host_vars/*/vars.yml"))
+paths += sorted(root.glob("host_vars/*/vault.yml"))
 
 pattern = re.compile(r"(user(name)?|pass(word)?|secret|token|auth|credential)", re.I)
 

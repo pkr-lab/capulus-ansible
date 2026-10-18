@@ -43,7 +43,7 @@
 
 - name: Homeserver-Root-CA-Zertifikat deployen
   ansible.builtin.copy:
-    src: "{{ playbook_dir }}/../docs/assets/homeserver-root-ca.pem"
+    src: "{{ banana_pi_kiosk_ca_src }}"
     dest: /usr/local/share/ca-certificates/homeserver-root-ca.crt
     owner: root
     group: root

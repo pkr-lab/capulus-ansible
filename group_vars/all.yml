@@ -77,7 +77,7 @@ semaphore_projects:
     description: "Deploy / re-provision the home-server itself."
     repository:
       name: home-server-git
-      url: "{{ argocd_repo_url }}"
+      url: "{{ semaphore_ansible_repo_url }}"
       branch: main
     environments:
       - "{{ semaphore_default_environment }}"
@@ -94,7 +94,7 @@ semaphore_projects:
           worker-1 ansible_host=192.168.178.96
     templates:
       - name: "Deploy Home Server"
-        playbook: ansible/site.yml
+        playbook: site.yml
         inventory: homeservers
         environment: default-env
         vault_key: vault-password
@@ -109,7 +109,7 @@ semaphore_projects:
     description: "Deploy k3s-Agent + Watchdogs auf worker-0 (192.168.178.95)."
     repository:
       name: home-server-git
-      url: "{{ argocd_repo_url }}"
+      url: "{{ semaphore_ansible_repo_url }}"
       branch: main
     environments:
       - "{{ semaphore_default_environment }}"
@@ -125,7 +125,7 @@ semaphore_projects:
           homeserver ansible_host=192.168.178.94
     templates:
       - name: "Deploy worker-0"
-        playbook: ansible/worker-0.yml
+        playbook: worker-0.yml
         inventory: worker_0_only
         environment: default-env
         vault_key: vault-password
@@ -135,7 +135,7 @@ semaphore_projects:
     description: "Deploy k3s-Agent + Watchdogs auf worker-1 (192.168.178.96)."
     repository:
       name: home-server-git
-      url: "{{ argocd_repo_url }}"
+      url: "{{ semaphore_ansible_repo_url }}"
       branch: main
     environments:
       - "{{ semaphore_default_environment }}"
@@ -151,7 +151,7 @@ semaphore_projects:
           homeserver ansible_host=192.168.178.94
     templates:
       - name: "Deploy worker-1"
-        playbook: ansible/worker-1.yml
+        playbook: worker-1.yml
         inventory: worker_1_only
         environment: default-env
         vault_key: vault-password
@@ -163,7 +163,7 @@ semaphore_projects:
       docs/3-apps-workloads/30010-alamos-apager.md.
     repository:
       name: home-server-git
-      url: "{{ argocd_repo_url }}"
+      url: "{{ semaphore_ansible_repo_url }}"
       branch: main
     environments:
       - "{{ semaphore_default_environment }}"
@@ -178,7 +178,7 @@ semaphore_projects:
           # geraetehaus ansible_host=192.168.178.110 alamos_kiosk_station=geraetehaus
     templates:
       - name: "Deploy Alarmmonitor Kiosks"
-        playbook: ansible/alarm-kiosks.yml
+        playbook: alarm-kiosks.yml
         inventory: raspberry_pis
         environment: default-env
         vault_key: vault-password
@@ -190,7 +190,7 @@ semaphore_projects:
       einrichten — siehe docs/3-apps-workloads/300e0-xibosignage.md.
     repository:
       name: home-server-git
-      url: "{{ argocd_repo_url }}"
+      url: "{{ semaphore_ansible_repo_url }}"
       branch: main
     environments:
       - "{{ semaphore_default_environment }}"
@@ -204,7 +204,7 @@ semaphore_projects:
           # wohnzimmer ansible_host=192.168.178.120
     templates:
       - name: "Deploy xibosignage Displays"
-        playbook: ansible/xibo-kiosks.yml
+        playbook: xibo-kiosks.yml
         inventory: xibo_displays
         environment: default-env
         vault_key: vault-password
@@ -222,7 +222,7 @@ semaphore_projects:
       re-provisionieren, nicht mehr per Semaphore-UI.
     repository:
       name: home-server-git
-      url: "{{ argocd_repo_url }}"
+      url: "{{ semaphore_ansible_repo_url }}"
       branch: main
     environments:
       - "{{ semaphore_default_environment }}"
@@ -237,7 +237,7 @@ semaphore_projects:
           vereinsheim-alarmmonitor ansible_host=100.123.214.4 ansible_user=pela banana_pi_kiosk_user=pela banana_pi_kiosk_station=1002011_Fahrzeughalle
     templates:
       - name: "Deploy Banana-Pi Alarmmonitore"
-        playbook: ansible/banana-pi-kiosks.yml
+        playbook: banana-pi-kiosks.yml
         inventory: banana_pis
         environment: default-env
         vault_key: vault-password

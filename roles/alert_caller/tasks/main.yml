@@ -53,6 +53,29 @@
         state: present
       when: alert_caller_manage_firewall | bool
 
+    - name: Cache-Verzeichnisse für alert-caller-Quellen anlegen
+      ansible.builtin.file:
+        path: "{{ alert_caller_core_cache_dir }}/{{ item }}"
+        state: directory
+        mode: "0755"
+      loop:
+        - src
+        - patches
+      delegate_to: localhost
+      become: false
+      run_once: true
+
+    - name: alert-caller-Quellen aus capulus-core laden
+      ansible.builtin.get_url:
+        url: "{{ alert_caller_core_raw_url }}/{{ item.path }}"
+        dest: "{{ alert_caller_core_cache_dir }}/{{ item.path }}"
+        checksum: "sha256:{{ item.sha256 }}"
+        mode: "0644"
+      loop: "{{ alert_caller_core_files }}"
+      delegate_to: localhost
+      become: false
+      run_once: true
+
     - name: Verzeichnisse anlegen
       ansible.builtin.file:
         path: "{{ item }}"
@@ -140,7 +163,7 @@
 
     - name: caller.py deployen
       ansible.builtin.copy:
-        src: "{{ role_path }}/../../../argocd/apps/tech/alert-caller/src/caller.py"
+        src: "{{ alert_caller_caller_src }}"
         dest: "{{ alert_caller_install_dir }}/caller.py"
         owner: root
         group: root
