@@ -21,7 +21,7 @@
       banana_pi_kiosk_fallback_url ist nicht gesetzt (oder noch der
       Platzhalter aus host_vars/{{ inventory_hostname }}/vault.yml). Echte
       ALAMOS-AMweb-URL per `ansible-vault encrypt_string` eintragen — siehe
-      Kommentar in dieser Datei und docs/3-apps-workloads/30020-vereinsheim-alarmmonitor.md.
+      Kommentar in dieser Datei und https://github.com/pkr-lab/pkr-lab-docs/blob/main/capulus-ansible/3-apps-workloads/30020-vereinsheim-alarmmonitor.md.
   when: banana_pi_kiosk_enabled | bool
 
 - name: Kiosk-Pakete installieren (Debian-Paketnamen, nicht Raspbian)
@@ -294,7 +294,7 @@
       Token-Rotation war: Wert per
       "ssh {{ ansible_user }}@{{ inventory_hostname }} sudo cat {{ banana_pi_kiosk_wol_agent_token_path }}"
       auslesen und in der iOS-App unter Einstellungen einfügen -- siehe
-      docs/3-apps-workloads/30020-vereinsheim-alarmmonitor.md.
+      https://github.com/pkr-lab/pkr-lab-docs/blob/main/capulus-ansible/3-apps-workloads/30020-vereinsheim-alarmmonitor.md.
   when: banana_pi_kiosk_enabled | bool and banana_pi_kiosk_wol_agent_enabled | bool
 
 - name: Heartbeat-Skript deployen
