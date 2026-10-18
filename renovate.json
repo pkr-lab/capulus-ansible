@@ -1,0 +1,36 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:recommended",
+    "helpers:pinGitHubActionDigests",
+    ":dependencyDashboard"
+  ],
+  "timezone": "Europe/Berlin",
+  "schedule": ["before 6am on monday"],
+  "labels": ["dependencies"],
+  "commitMessagePrefix": "chore(deps):",
+  "github-actions": {
+    "enabled": true
+  },
+  "customManagers": [
+    {
+      "customType": "regex",
+      "managerFilePatterns": ["/^roles/k3s/defaults/main\\.yml$/"],
+      "matchStrings": ["k3s_helm_release: \"(?<currentValue>v[0-9.]+)\""],
+      "depNameTemplate": "helm/helm",
+      "datasourceTemplate": "github-releases"
+    }
+  ],
+  "minimumReleaseAge": "3 days",
+  "vulnerabilityAlerts": {
+    "enabled": false
+  },
+  "packageRules": [
+    {
+      "matchPackageNames": ["helm/helm"],
+      "allowedVersions": "/^v3\\./"
+    }
+  ],
+  "prConcurrentLimit": 5,
+  "prHourlyLimit": 0
+}

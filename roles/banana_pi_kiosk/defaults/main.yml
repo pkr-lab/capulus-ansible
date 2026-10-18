@@ -1,6 +1,8 @@
 ---
 banana_pi_kiosk_enabled: true
 
+banana_pi_kiosk_ca_src: "{{ playbook_dir }}/files/homeserver-root-ca.pem"
+
 banana_pi_kiosk_base_url: "https://alamos-apager.prod.homeserver"
 
 banana_pi_kiosk_user: "pela"

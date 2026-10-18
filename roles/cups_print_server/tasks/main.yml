@@ -263,7 +263,7 @@
     msg: >-
       cups_print_server_device_uri und/oder cups_print_server_ppd sind noch
       leer — die Warteschlange wird NICHT angelegt. Werte aus den
-      lpinfo-Ausgaben oben übernehmen und in ansible/group_vars/all.yml
+      lpinfo-Ausgaben oben übernehmen und in group_vars/all.yml
       eintragen, dann die Rolle erneut laufen lassen
       (`make cups-print-server`). Siehe docs/2-betrieb-hardware/20040-printer.md.
   when:
