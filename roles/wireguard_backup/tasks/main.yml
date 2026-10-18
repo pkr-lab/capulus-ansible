@@ -50,7 +50,7 @@
     rule: allow
     port: "{{ wireguard_backup_port }}"
     proto: udp
-    comment: "WireGuard backup VPN (Tailscale-Ausfallsicherung, siehe docs/c-netzwerk-dns/c0011-wireguard-backup.md)"
+    comment: "WireGuard backup VPN (Tailscale-Ausfallsicherung, siehe https://github.com/pkr-lab/pkr-lab-docs/blob/main/capulus-core/c-netzwerk-dns/c0011-wireguard-backup.md)"
 
 - name: Enable and start wg-quick service for the backup tunnel
   ansible.builtin.systemd:
@@ -66,4 +66,4 @@
       - "Server public key: {{ wireguard_backup_pubkey_result.stdout }}"
       - "Listen port (UDP): {{ wireguard_backup_port }}"
       - "Peer configured: {{ 'yes (' + wireguard_backup_peer_name + ')' if wireguard_backup_peer_public_key | default('') | length > 0 else 'NO — set wireguard_backup_peer_public_key in group_vars/all.yml' }}"
-      - "Reminder: forward UDP {{ wireguard_backup_port }} on your router to this host's LAN IP — see docs/c-netzwerk-dns/c0011-wireguard-backup.md"
+      - "Reminder: forward UDP {{ wireguard_backup_port }} on your router to this host's LAN IP — see https://github.com/pkr-lab/pkr-lab-docs/blob/main/capulus-core/c-netzwerk-dns/c0011-wireguard-backup.md"

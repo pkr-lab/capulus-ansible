@@ -40,7 +40,7 @@
       {{ (libvirt_host_vm_disk_info.stdout | from_json)['full-backing-filename'] }}.
       Wird diese Datei ersetzt oder geloescht, startet die VM nicht mehr. Disk bei
       ausgeschalteter VM per `qemu-img convert` unabhaengig machen, siehe
-      docs/5-incidents/50010-prod-vm-basis-image-ersetzt.md.
+      https://github.com/pkr-lab/pkr-lab-docs/blob/main/capulus-core/5-incidents/50010-prod-vm-basis-image-ersetzt.md.
   when:
     - libvirt_host_vm_exists.rc == 0
     - libvirt_host_vm_disk_info.rc == 0
