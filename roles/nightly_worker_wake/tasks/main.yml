@@ -69,7 +69,7 @@
       n8n-Trigger kann sich noch nicht per SSH verbinden. Key lokal
       erzeugen (ssh-keygen -t ed25519 -f n8n_trigger_ed25519 -N ""),
       Public Key hier eintragen (group_vars/all.yml), Private Key in eine
-      n8n-SSH-Credential einfügen. Siehe docs/2-betrieb-hardware/20030-nightly-worker-update.md.
+      n8n-SSH-Credential einfügen. Siehe https://github.com/pkr-lab/pkr-lab-docs/blob/main/capulus-ansible/2-betrieb-hardware/20030-nightly-worker-update.md.
   when:
     - nightly_worker_wake_enabled | bool
     - (nightly_worker_wake_n8n_trigger_public_key | length) < 20

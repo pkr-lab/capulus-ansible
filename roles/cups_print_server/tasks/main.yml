@@ -62,7 +62,7 @@
   failed_when: false
   when: cups_print_server_enabled | bool
 
-- name: "TLS-Zertifikat fuer cupsd mit allen bekannten Selbst-Identifikationsnamen erzeugen (siehe docs/2-betrieb-hardware/20040-printer.md)"
+- name: "TLS-Zertifikat fuer cupsd mit allen bekannten Selbst-Identifikationsnamen erzeugen (siehe https://github.com/pkr-lab/pkr-lab-docs/blob/main/capulus-ansible/2-betrieb-hardware/20040-printer.md)"
   when:
     - cups_print_server_enabled | bool
     - >-
@@ -154,7 +154,7 @@
           * capulus-core: Fallback, falls cupsd keine per Job
           * aufgelöste Option weitergibt — liest den PPD-eigenen
           * *DefaultXxx-Wert direkt, ohne ppdFindMarkedChoice().
-          * Siehe docs/2-betrieb-hardware/20040-printer.md.
+          * Siehe https://github.com/pkr-lab/pkr-lab-docs/blob/main/capulus-ansible/2-betrieb-hardware/20040-printer.md.
           */
         Value                   getDefaultChoice(const char *name);
   when:
@@ -255,7 +255,7 @@
          | default([])
          | select('search', '(?i)samsung|spl')
          | list
-         | default(['(keine gefunden — siehe docs/2-betrieb-hardware/20040-printer.md für Alternativen)'], true) }}
+         | default(['(keine gefunden — siehe https://github.com/pkr-lab/pkr-lab-docs/blob/main/capulus-ansible/2-betrieb-hardware/20040-printer.md für Alternativen)'], true) }}
   when: cups_print_server_enabled | bool
 
 - name: Warnen, wenn Device-URI/PPD noch nicht gesetzt sind
@@ -265,7 +265,7 @@
       leer — die Warteschlange wird NICHT angelegt. Werte aus den
       lpinfo-Ausgaben oben übernehmen und in group_vars/all.yml
       eintragen, dann die Rolle erneut laufen lassen
-      (`make cups-print-server`). Siehe docs/2-betrieb-hardware/20040-printer.md.
+      (`make cups-print-server`). Siehe https://github.com/pkr-lab/pkr-lab-docs/blob/main/capulus-ansible/2-betrieb-hardware/20040-printer.md.
   when:
     - cups_print_server_enabled | bool
     - (cups_print_server_device_uri | length == 0) or (cups_print_server_ppd | length == 0)
@@ -330,7 +330,7 @@
          | default([])
          | select('search', '(?i)splix|samsung|spl')
          | list
-         | default(['(keine gefunden — siehe docs/2-betrieb-hardware/20040-printer.md)'], true) }}
+         | default(['(keine gefunden — siehe https://github.com/pkr-lab/pkr-lab-docs/blob/main/capulus-ansible/2-betrieb-hardware/20040-printer.md)'], true) }}
   when:
     - cups_print_server_enabled | bool
     - cups_print_server_extra_queues | length > 0
@@ -340,7 +340,7 @@
     msg: >-
       Queue "{{ item.name }}": ppd ist noch leer — wird NICHT angelegt.
       Passenden Treffer aus der Splix-Katalog-Debug-Ausgabe oben in
-      cups_print_server_extra_queues eintragen. Siehe docs/2-betrieb-hardware/20040-printer.md.
+      cups_print_server_extra_queues eintragen. Siehe https://github.com/pkr-lab/pkr-lab-docs/blob/main/capulus-ansible/2-betrieb-hardware/20040-printer.md.
   loop: "{{ cups_print_server_extra_queues }}"
   loop_control:
     label: "{{ item.name }}"

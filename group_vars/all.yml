@@ -160,7 +160,7 @@ semaphore_projects:
   - name: alarm-kiosks
     description: >-
       Alarmmonitor-Kiosks (Raspberry Pi, ALAMOS AMweb) einrichten — siehe
-      docs/3-apps-workloads/30010-alamos-apager.md.
+      https://github.com/pkr-lab/pkr-lab-docs/blob/main/capulus-core/3-apps-workloads/30010-alamos-apager.md.
     repository:
       name: home-server-git
       url: "{{ semaphore_ansible_repo_url }}"
@@ -187,7 +187,7 @@ semaphore_projects:
   - name: xibo-displays
     description: >-
       xibosignage-Displays (Raspberry Pi 3 B+, Bilder-Slideshow + Tailscale)
-      einrichten — siehe docs/3-apps-workloads/300e0-xibosignage.md.
+      einrichten — siehe https://github.com/pkr-lab/pkr-lab-docs/blob/main/capulus-core/3-apps-workloads/300e0-xibosignage.md.
     repository:
       name: home-server-git
       url: "{{ semaphore_ansible_repo_url }}"
@@ -213,7 +213,7 @@ semaphore_projects:
   - name: banana-pi-kiosks
     description: >-
       Banana-Pi-Alarmmonitore (Armbian, ALAMOS AMweb + lokaler
-      Server-Fallback) einrichten — siehe docs/3-apps-workloads/30020-vereinsheim-alarmmonitor.md.
+      Server-Fallback) einrichten — siehe https://github.com/pkr-lab/pkr-lab-docs/blob/main/capulus-ansible/3-apps-workloads/30020-vereinsheim-alarmmonitor.md.
       ACHTUNG: funktioniert per Semaphore NUR solange der Pi noch am LAN
       haengt (Phase 1) — Semaphore laeuft selbst als Pod im Cluster und hat
       wie jeder Pod keinen Netzwerkpfad zu Tailscale-Peers. Nach dem Umzug
@@ -233,7 +233,7 @@ semaphore_projects:
         content: |
           [banana_pis]
           # ansible_host gilt nur fuer Phase 1 (Pi noch am LAN) — siehe
-          # docs/3-apps-workloads/30020-vereinsheim-alarmmonitor.md.
+          # https://github.com/pkr-lab/pkr-lab-docs/blob/main/capulus-ansible/3-apps-workloads/30020-vereinsheim-alarmmonitor.md.
           vereinsheim-alarmmonitor ansible_host=100.123.214.4 ansible_user=pela banana_pi_kiosk_user=pela banana_pi_kiosk_station=1002011_Fahrzeughalle
     templates:
       - name: "Deploy Banana-Pi Alarmmonitore"
