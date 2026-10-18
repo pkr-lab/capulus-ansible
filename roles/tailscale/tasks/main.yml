@@ -54,7 +54,7 @@
     fail_msg: >-
       Der Fingerprint von /usr/share/keyrings/tailscale-archive-keyring.gpg weicht von
       tailscale_signing_key_fingerprint ab. Schlüssel nicht vertrauen, Ursache klären
-      (docs/6-hintergruende/60020-ansible-rollen.md, Abschnitt Installer und Prüfsummen).
+      (https://github.com/pkr-lab/pkr-lab-docs/blob/main/capulus-ansible/6-hintergruende/60020-ansible-rollen.md, Abschnitt Installer und Prüfsummen).
   when: tailscale_key_info.stdout is defined
 
 - name: Add Tailscale APT repository
