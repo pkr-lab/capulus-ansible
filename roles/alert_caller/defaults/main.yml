@@ -15,7 +15,18 @@ alert_caller_baresip_dir: /etc/alert-caller/baresip
 alert_caller_baresip_version: "4.12.0"
 alert_caller_baresip_prefix: /opt/baresip
 alert_caller_baresip_build_dir: /usr/local/src/alert-caller
-alert_caller_patch_dir: "{{ role_path }}/../../../argocd/apps/tech/alert-caller/patches"
+alert_caller_core_ref: "v3.49.0"
+alert_caller_core_raw_url: "https://raw.githubusercontent.com/pkr-lab/capulus-core/{{ alert_caller_core_ref }}/argocd/apps/tech/alert-caller"
+alert_caller_core_cache_dir: "{{ lookup('ansible.builtin.env', 'HOME') }}/.cache/capulus-ansible/alert-caller-{{ alert_caller_core_ref }}"
+alert_caller_core_files:
+  - path: src/caller.py
+    sha256: f5e9ef8819a3d9ed31c3f2a304b7f3aab0e906678ef2b3ad3142970479b6de1b
+  - path: patches/libre-sips-route.patch
+    sha256: c0b1f2b373705059df22eae1d65af79d818d0c2534e1c8c45ac94bab2bd19aef
+  - path: patches/baresip-srtp-no-gcm.patch
+    sha256: 290bc7d3217d3f912029efc027014bb413f08bd3d38de2689e3f9fa7320e7ca5
+alert_caller_patch_dir: "{{ alert_caller_core_cache_dir }}/patches"
+alert_caller_caller_src: "{{ alert_caller_core_cache_dir }}/src/caller.py"
 alert_caller_libre_patches:
   - libre-sips-route.patch
 alert_caller_baresip_patches:

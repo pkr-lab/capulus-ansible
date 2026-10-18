@@ -4,19 +4,12 @@ extends: default
 rules:
   line-length: disable
   document-start: disable
-  # yamllint teils als "truthy"/"comments"-Verstoß werten - hier bewusst
   truthy: disable
   comments:
     min-spaces-from-content: 1
-  # yamllint-Config, sonst verweigert es die eigene YAML-Prüfung
   comments-indentation: false
   octal-values:
     forbid-implicit-octal: true
     forbid-explicit-octal: true
   braces:
     max-spaces-inside: 1
-
-ignore: |
-  argocd/apps/*/*/charts/
-  argocd/apps/*/*/templates/
-  argocd/apps/tech/isc-news-bot/node_modules/
