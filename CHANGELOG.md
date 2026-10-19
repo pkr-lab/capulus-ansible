@@ -1,3 +1,10 @@
+## [1.0.1](https://github.com/pkr-lab/capulus-ansible/compare/v1.0.0...v1.0.1) (2026-10-19)
+
+### Bug Fixes
+
+* **renovate:** Zeitplan auf ganzen Montag erweitern ([257d69e](https://github.com/pkr-lab/capulus-ansible/commit/257d69e954da7e30d200e050e2317931dec138fd))
+* **semaphore_bootstrap:** bestehendes Repository auf neue git_url und Branch umstellen ([35474a9](https://github.com/pkr-lab/capulus-ansible/commit/35474a9d42c96cd2b40762ca13069bd7d93cd13c))
+
 ## 1.0.0 (2026-10-18)
 
 ### ⚠ BREAKING CHANGES
