@@ -163,6 +163,15 @@
   when: xibo_kiosk_enabled | bool
   notify: Restart xibosignage sync timer
 
+- name: Bildschirmmodus-Skript deployen
+  ansible.builtin.template:
+    src: xibosignage-display-mode.sh.j2
+    dest: /usr/local/bin/xibosignage-display-mode.sh
+    owner: root
+    group: root
+    mode: "0755"
+  when: xibo_kiosk_enabled | bool
+
 - name: Kiosk-Start-Skript deployen
   ansible.builtin.template:
     src: xibosignage-kiosk-start.sh.j2
