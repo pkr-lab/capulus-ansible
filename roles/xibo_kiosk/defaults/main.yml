@@ -8,6 +8,7 @@ xibo_kiosk_mount_point: "/mnt/xibosignage-display"
 xibo_kiosk_web_root: "/var/www/xibosignage-slideshow"
 
 xibo_kiosk_sync_interval_seconds: 30
+xibo_kiosk_sync_boot_delay_seconds: 20
 xibo_kiosk_sync_settle_seconds: 5
 xibo_kiosk_manifest_reload_seconds: 10
 
@@ -19,7 +20,18 @@ xibo_kiosk_image_jpeg_quality: 85
 
 xibo_kiosk_cursor_hide_seconds: 3
 
+xibo_kiosk_display_poll_seconds: 5
+xibo_kiosk_display_mode: ""
+xibo_kiosk_display_detect_timeout_seconds: 45
+xibo_kiosk_display_fallback_mode: "1920x1080"
+xibo_kiosk_pixel_aspect: auto
+
 xibo_kiosk_user: "pi"
+
+xibo_kiosk_start_mode: systemd
+xibo_kiosk_supplementary_groups:
+  - video
+  - render
 
 xibo_kiosk_chromium_extra_flags: []
 
@@ -29,3 +41,5 @@ xibo_kiosk_disable_services:
   - cups-browsed.service
   - cups.service
   - cups.socket
+  - e2scrub_reap.service
+  - upower.service

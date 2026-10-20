@@ -2,7 +2,7 @@
 Description=Periodischer xibosignage Bilder-Sync
 
 [Timer]
-OnBootSec=3
+OnBootSec={{ xibo_kiosk_sync_boot_delay_seconds }}
 OnUnitInactiveSec={{ xibo_kiosk_sync_interval_seconds }}
 AccuracySec=1s
 Unit=xibosignage-sync.service
