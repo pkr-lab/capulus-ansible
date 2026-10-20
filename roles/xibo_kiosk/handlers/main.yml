@@ -1,18 +1,10 @@
 ---
-- name: Restart xibosignage webserver
+- name: Reload systemd
   ansible.builtin.systemd:
-    name: xibosignage-webserver.service
     daemon_reload: true
-    state: restarted
 
-- name: Restart xibosignage manifest timer
+- name: Restart xibosignage sync timer
   ansible.builtin.systemd:
-    name: xibosignage-manifest.timer
-    daemon_reload: true
-    state: restarted
-
-- name: Restart xibosignage kiosk
-  ansible.builtin.systemd:
-    name: xibosignage-kiosk.service
+    name: xibosignage-sync.timer
     daemon_reload: true
     state: restarted

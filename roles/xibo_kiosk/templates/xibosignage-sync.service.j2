@@ -1,0 +1,19 @@
+[Unit]
+Description=xibosignage Bilder-Sync (NFS nach lokalem Cache)
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/xibosignage-sync.py \
+  --source {{ xibo_kiosk_mount_point }} \
+  --media {{ xibo_kiosk_web_root }}/media \
+  --manifest {{ xibo_kiosk_web_root }}/manifest.js \
+  --max-width {{ xibo_kiosk_image_max_width }} \
+  --max-height {{ xibo_kiosk_image_max_height }} \
+  --jpeg-quality {{ xibo_kiosk_image_jpeg_quality }} \
+  --settle-seconds {{ xibo_kiosk_sync_settle_seconds }}
+TimeoutStartSec=600
+Nice=19
+IOSchedulingClass=idle
+CPUWeight=20
