@@ -1,0 +1,11 @@
+[Unit]
+Description=Periodischer xibosignage Bilder-Sync
+
+[Timer]
+OnBootSec=3
+OnUnitInactiveSec={{ xibo_kiosk_sync_interval_seconds }}
+AccuracySec=1s
+Unit=xibosignage-sync.service
+
+[Install]
+WantedBy=timers.target
