@@ -11,6 +11,8 @@ from urllib.parse import quote
 IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".gif", ".webp"}
 RESIZABLE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp"}
 PARTIAL_DIR = ".partial"
+TARGET_MARKER = ".target"
+MIN_SCREEN = (640, 480)
 
 
 def log(message):
@@ -25,6 +27,7 @@ def parse_args():
     parser.add_argument("--max-width", type=int, default=1920)
     parser.add_argument("--max-height", type=int, default=1080)
     parser.add_argument("--jpeg-quality", type=int, default=85)
+    parser.add_argument("--screen-file")
     parser.add_argument("--settle-seconds", type=int, default=5)
     parser.add_argument("--mount-timeout", type=int, default=30)
     return parser.parse_args()
@@ -185,6 +188,36 @@ def write_manifest(media_dir, manifest_path):
     return True
 
 
+def resolve_target(args):
+    width, height = args.max_width, args.max_height
+    if args.screen_file:
+        try:
+            with open(args.screen_file, "r", encoding="utf-8") as handle:
+                screen_width, screen_height = (int(value) for value in handle.read().split()[:2])
+        except (OSError, ValueError):
+            return width, height
+        if screen_width >= MIN_SCREEN[0] and screen_height >= MIN_SCREEN[1]:
+            width, height = min(width, screen_width), min(height, screen_height)
+    return width, height
+
+
+def read_marker(media_dir):
+    try:
+        with open(os.path.join(media_dir, TARGET_MARKER), "r", encoding="utf-8") as handle:
+            return handle.read().strip()
+    except OSError:
+        return ""
+
+
+def write_marker(media_dir, value):
+    path = os.path.join(media_dir, TARGET_MARKER)
+    with open(path + ".tmp", "w", encoding="utf-8") as handle:
+        handle.write(value + "\n")
+        handle.flush()
+        os.fsync(handle.fileno())
+    os.replace(path + ".tmp", path)
+
+
 def prepare_media_dir(media_dir):
     os.makedirs(media_dir, exist_ok=True)
     partial = os.path.join(media_dir, PARTIAL_DIR)
@@ -195,6 +228,12 @@ def prepare_media_dir(media_dir):
 def main():
     args = parse_args()
     prepare_media_dir(args.media)
+    args.max_width, args.max_height = resolve_target(args)
+    target = "%dx%d" % (args.max_width, args.max_height)
+    force = read_marker(args.media) != target
+    if force:
+        log("Zielaufloesung %s, Bilder werden neu verarbeitet" % target)
+    failed = False
 
     exit_code = 0
     if not ensure_mounted(args.source, args.mount_timeout):
@@ -213,10 +252,18 @@ def main():
             for name in sorted(source_entries):
                 stat = source_entries[name]
                 if now - stat.st_mtime < args.settle_seconds:
+                    failed = True
                     continue
-                if is_current(os.path.join(args.media, name), stat):
+                if not force and is_current(os.path.join(args.media, name), stat):
                     continue
-                sync_file(name, args.source, args.media, stat, args)
+                if not sync_file(name, args.source, args.media, stat, args):
+                    failed = True
+
+            if source_entries and not failed:
+                try:
+                    write_marker(args.media, target)
+                except OSError as error:
+                    log("marker schreiben fehlgeschlagen: %s" % error)
 
             if source_entries:
                 for name in list_cache(args.media) - set(source_entries):

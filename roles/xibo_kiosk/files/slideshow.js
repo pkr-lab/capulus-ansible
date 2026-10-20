@@ -140,7 +140,20 @@
     }, CURSOR_HIDE_MS);
   }
 
+  function applyPixelAspect() {
+    var match = /[?&]par=([0-9.]+)/.exec(window.location.search);
+    var factor = match ? parseFloat(match[1]) : 1;
+    if (!(factor >= 0.5 && factor <= 3) || Math.abs(factor - 1) < 0.01) {
+      return;
+    }
+    var stage = document.getElementById("stage");
+    stage.style.width = (100 * factor) + "vw";
+    stage.style.transformOrigin = "0 0";
+    stage.style.transform = "scaleX(" + (1 / factor) + ")";
+  }
+
   function start() {
+    applyPixelAspect();
     slides = [document.getElementById("slideA"), document.getElementById("slideB")];
     document.addEventListener("mousemove", showCursor, { passive: true });
     document.addEventListener("mousedown", showCursor, { passive: true });
