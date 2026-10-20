@@ -1,0 +1,47 @@
+#!/usr/bin/env bash
+set -u
+
+SCREEN_FILE=/dev/shm/xibosignage-screen
+POLL_SECONDS={{ xibo_kiosk_display_poll_seconds }}
+
+apply_once() {
+  local info output preferred current
+  info=$(xrandr --query 2>/dev/null) || return 0
+  output=$(awk '/ connected/ {print $1; exit}' <<<"$info")
+  [ -n "$output" ] || return 0
+
+  preferred=$(awk -v o="$output" '
+    $1 == o {found = 1; next}
+    found && /^[^ ]/ {found = 0}
+    found && /\+/ {print $1; exit}
+  ' <<<"$info")
+  current=$(awk -v o="$output" '
+    $1 == o {found = 1; next}
+    found && /^[^ ]/ {found = 0}
+    found && /\*/ {print $1; exit}
+  ' <<<"$info")
+
+  if [ -n "$preferred" ] && [ "$preferred" != "$current" ]; then
+    logger -t xibosignage-display "setze nativen Modus $preferred auf $output (vorher ${current:-keiner})"
+    xrandr --output "$output" --mode "$preferred" >/dev/null 2>&1 || true
+    current=$preferred
+  fi
+
+  if [[ "$current" =~ ^([0-9]+)x([0-9]+)$ ]]; then
+    local size="${BASH_REMATCH[1]} ${BASH_REMATCH[2]}"
+    if [ "$(cat "$SCREEN_FILE" 2>/dev/null)" != "$size" ]; then
+      printf '%s\n' "$size" >"$SCREEN_FILE.tmp" && chmod 644 "$SCREEN_FILE.tmp" && mv "$SCREEN_FILE.tmp" "$SCREEN_FILE"
+      logger -t xibosignage-display "bildschirm erkannt: $output $size"
+    fi
+  fi
+}
+
+if [ "${1:-}" = "once" ]; then
+  apply_once
+  exit 0
+fi
+
+while true; do
+  apply_once
+  sleep "$POLL_SECONDS"
+done

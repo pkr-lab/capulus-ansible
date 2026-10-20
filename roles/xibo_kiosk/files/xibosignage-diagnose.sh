@@ -29,6 +29,11 @@ ls -l /var/www/xibosignage-slideshow/media 2>&1 | head -30
 cat /var/www/xibosignage-slideshow/manifest.js 2>&1
 findmnt /mnt/xibosignage-display 2>&1 || echo "NFS aktuell nicht gemountet"
 
+section "Bildschirm (Modus und Seitenverhaeltnis)"
+DISPLAY=:0 xrandr --query 2>&1 | head -15
+echo "erkannt: $(cat /dev/shm/xibosignage-screen 2>/dev/null || echo nichts)"
+journalctl -t xibosignage-display -b --no-pager 2>&1 | tail -10
+
 section "Session-Typ und Prozesse"
 echo "XDG_SESSION_TYPE=${XDG_SESSION_TYPE:-}"
 pgrep -a Xorg 2>&1 || echo "kein Xorg-Prozess"

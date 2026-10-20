@@ -7,6 +7,8 @@ log() {
 
 log "x11 bereit"
 
+/usr/local/bin/xibosignage-display-mode.sh once
+/usr/local/bin/xibosignage-display-mode.sh &
 openbox &
 unclutter -idle {{ xibo_kiosk_cursor_hide_seconds }} &
 
