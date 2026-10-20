@@ -1,11 +1,80 @@
 #!/usr/bin/env bash
 set -u
+export LC_ALL=C
 
 SCREEN_FILE=/dev/shm/xibosignage-screen
 POLL_SECONDS={{ xibo_kiosk_display_poll_seconds }}
+FORCED_MODE="{{ xibo_kiosk_display_mode }}"
+PIXEL_ASPECT="{{ xibo_kiosk_pixel_aspect }}"
+
+mode_listed() {
+  awk -v o="$2" -v m="$3" '
+    $1 == o {found = 1; next}
+    found && /^[^ ]/ {found = 0}
+    found && $1 == m {hit = 1}
+    END {exit hit ? 0 : 1}
+  ' <<<"$1"
+}
+
+first_mode() {
+  awk -v o="$2" '
+    $1 == o {found = 1; next}
+    found && /^[^ ]/ {found = 0}
+    found && $1 ~ /^[0-9]+x[0-9]+$/ {print $1; exit}
+  ' <<<"$1"
+}
+
+kernel_mode() {
+  local file
+  for file in /sys/class/drm/card*-HDMI-A-"${1#*-}"/modes; do
+    if [ -r "$file" ]; then
+      head -1 "$file"
+      return
+    fi
+  done
+}
+
+pixel_aspect() {
+  local info line mm_regex geometry_regex
+  case "$PIXEL_ASPECT" in
+    off|"") return 0 ;;
+    auto) ;;
+    *) printf '%s\n' "$PIXEL_ASPECT"; return 0 ;;
+  esac
+  info=$(xrandr --query 2>/dev/null) || return 0
+  line=$(awk '/ connected/ {print; exit}' <<<"$info")
+  mm_regex='([0-9]+)mm x ([0-9]+)mm'
+  geometry_regex='([0-9]+)x([0-9]+)\+[0-9]+\+[0-9]+'
+  [[ "$line" =~ $mm_regex ]] || return 0
+  local mm_width="${BASH_REMATCH[1]}" mm_height="${BASH_REMATCH[2]}"
+  [[ "$line" =~ $geometry_regex ]] || return 0
+  local px_width="${BASH_REMATCH[1]}" px_height="${BASH_REMATCH[2]}"
+  awk -v mw="$mm_width" -v mh="$mm_height" -v pw="$px_width" -v ph="$px_height" '
+    BEGIN {
+      if (mw < 100 || mh < 100 || pw < 1 || ph < 1) exit
+      k = (mw / mh) / (pw / ph)
+      if (k < 0.5 || k > 3 || (k > 0.92 && k < 1.08)) exit
+      printf "%.3f\n", k
+    }
+  '
+}
+
+add_forced_mode() {
+  local output="$1" width height modeline name
+  [[ "$FORCED_MODE" =~ ^([0-9]+)x([0-9]+)$ ]] || return 1
+  width="${BASH_REMATCH[1]}"
+  height="${BASH_REMATCH[2]}"
+  modeline=$(cvt "$width" "$height" 2>/dev/null | awk '/Modeline/ {$1 = ""; print}')
+  modeline=${modeline//\"/}
+  [ -n "$modeline" ] || return 1
+  name=$(awk '{print $1}' <<<"$modeline")
+  xrandr --newmode $modeline >/dev/null 2>&1 || true
+  xrandr --addmode "$output" "$name" >/dev/null 2>&1 || return 1
+  FORCED_MODE="$name"
+}
 
 apply_once() {
-  local info output preferred current
+  local info output preferred current wanted
   info=$(xrandr --query 2>/dev/null) || return 0
   output=$(awk '/ connected/ {print $1; exit}' <<<"$info")
   [ -n "$output" ] || return 0
@@ -21,13 +90,31 @@ apply_once() {
     found && /\*/ {print $1; exit}
   ' <<<"$info")
 
-  if [ -n "$preferred" ] && [ "$preferred" != "$current" ]; then
-    logger -t xibosignage-display "setze nativen Modus $preferred auf $output (vorher ${current:-keiner})"
-    xrandr --output "$output" --mode "$preferred" >/dev/null 2>&1 || true
-    current=$preferred
+  wanted=$preferred
+  if [ -n "$FORCED_MODE" ]; then
+    if mode_listed "$info" "$output" "$FORCED_MODE" || add_forced_mode "$output"; then
+      wanted=$FORCED_MODE
+    else
+      logger -t xibosignage-display "erzwungener Modus $FORCED_MODE auf $output nicht verfuegbar"
+    fi
+  elif [ -z "$preferred" ]; then
+    wanted=$(kernel_mode "$output")
+    if [ -z "$wanted" ] || ! mode_listed "$info" "$output" "$wanted"; then
+      wanted=$(first_mode "$info" "$output")
+    fi
+    if [ -z "${NO_PREFERRED_LOGGED:-}" ]; then
+      logger -t xibosignage-display "kein bevorzugter Modus von $output markiert, verwende ${wanted:-keinen} (aktuell ${current:-keiner})"
+      NO_PREFERRED_LOGGED=1
+    fi
   fi
 
-  if [[ "$current" =~ ^([0-9]+)x([0-9]+)$ ]]; then
+  if [ -n "$wanted" ] && [ "$wanted" != "$current" ]; then
+    logger -t xibosignage-display "setze Modus $wanted auf $output (vorher ${current:-keiner})"
+    xrandr --output "$output" --mode "$wanted" >/dev/null 2>&1 || true
+    current=$wanted
+  fi
+
+  if [[ "$current" =~ ^([0-9]+)x([0-9]+) ]]; then
     local size="${BASH_REMATCH[1]} ${BASH_REMATCH[2]}"
     if [ "$(cat "$SCREEN_FILE" 2>/dev/null)" != "$size" ]; then
       printf '%s\n' "$size" >"$SCREEN_FILE.tmp" && chmod 644 "$SCREEN_FILE.tmp" && mv "$SCREEN_FILE.tmp" "$SCREEN_FILE"
@@ -38,6 +125,11 @@ apply_once() {
 
 if [ "${1:-}" = "once" ]; then
   apply_once
+  exit 0
+fi
+
+if [ "${1:-}" = "par" ]; then
+  pixel_aspect
   exit 0
 fi
 

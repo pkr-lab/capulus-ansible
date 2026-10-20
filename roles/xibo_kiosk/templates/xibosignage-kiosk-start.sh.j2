@@ -5,9 +5,17 @@ log() {
   logger -t xibosignage-kiosk "$* uptime=$(cut -d' ' -f1 /proc/uptime)"
 }
 
+log "kiosk-skript gestartet"
+
+until xrandr --query >/dev/null 2>&1; do
+  sleep 0.2
+done
+
 log "x11 bereit"
 
 /usr/local/bin/xibosignage-display-mode.sh once
+PIXEL_ASPECT=$(/usr/local/bin/xibosignage-display-mode.sh par)
+log "bildschirm ${PIXEL_ASPECT:+seitenverhaeltnis-korrektur $PIXEL_ASPECT}"
 /usr/local/bin/xibosignage-display-mode.sh &
 openbox &
 unclutter -idle {{ xibo_kiosk_cursor_hide_seconds }} &
@@ -47,7 +55,7 @@ while true; do
 {% for flag in xibo_kiosk_chromium_extra_flags %}
     {{ flag }} \
 {% endfor %}
-    "file://{{ xibo_kiosk_web_root }}/index.html"
+    "file://{{ xibo_kiosk_web_root }}/index.html${PIXEL_ASPECT:+?par=$PIXEL_ASPECT}"
   log "chromium beendet, neustart"
   sleep 1
 done
