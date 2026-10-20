@@ -2,18 +2,17 @@
 <html lang="de">
 <head>
 <meta charset="utf-8">
-<title>xibosignage Slideshow</title>
+<meta name="color-scheme" content="dark">
+<title>Infotafel</title>
 <link rel="stylesheet" href="slideshow.css">
+<script src="config.js"></script>
+<script src="manifest.js"></script>
+<script src="slideshow.js"></script>
 </head>
 <body>
   <div id="stage">
-    <img class="slide" id="slideA" alt="">
-    <img class="slide" id="slideB" alt="">
-    <div id="placeholder">
-      <p>Warte auf Bilder in xibosignage-display &hellip;</p>
-    </div>
+    <img class="slide" id="slideA" alt="" loading="eager" decoding="async">
+    <img class="slide" id="slideB" alt="" loading="eager" decoding="async">
   </div>
-  <script src="config.js"></script>
-  <script src="slideshow.js"></script>
 </body>
 </html>
