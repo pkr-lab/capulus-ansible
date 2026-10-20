@@ -10,6 +10,7 @@
       - x11-xserver-utils
       - xserver-xorg
       - xinit
+      - xauth
       - openbox
       - imagemagick
       - python3
@@ -19,7 +20,14 @@
     cache_valid_time: 3600
   when: xibo_kiosk_enabled | bool
 
-- name: Alte Kiosk-, Webserver- und Manifest-Units entfernen
+- name: Startmodus prüfen
+  ansible.builtin.assert:
+    that:
+      - xibo_kiosk_start_mode in ['systemd', 'getty']
+    fail_msg: "xibo_kiosk_start_mode muss systemd oder getty sein"
+  when: xibo_kiosk_enabled | bool
+
+- name: Alte Webserver- und Manifest-Units entfernen
   when: xibo_kiosk_enabled | bool
   block:
     - name: Alte Units stoppen und deaktivieren
@@ -28,7 +36,6 @@
         enabled: false
         state: stopped
       loop:
-        - xibosignage-kiosk.service
         - xibosignage-webserver.service
         - xibosignage-manifest.timer
         - xibosignage-manifest.service
@@ -39,7 +46,6 @@
         path: "{{ item }}"
         state: absent
       loop:
-        - /etc/systemd/system/xibosignage-kiosk.service
         - /etc/systemd/system/xibosignage-webserver.service
         - /etc/systemd/system/xibosignage-manifest.timer
         - /etc/systemd/system/xibosignage-manifest.service
@@ -163,6 +169,15 @@
   when: xibo_kiosk_enabled | bool
   notify: Restart xibosignage sync timer
 
+- name: Bildschirmmodus-Skript deployen
+  ansible.builtin.template:
+    src: xibosignage-display-mode.sh.j2
+    dest: /usr/local/bin/xibosignage-display-mode.sh
+    owner: root
+    group: root
+    mode: "0755"
+  when: xibo_kiosk_enabled | bool
+
 - name: Kiosk-Start-Skript deployen
   ansible.builtin.template:
     src: xibosignage-kiosk-start.sh.j2
@@ -171,6 +186,29 @@
     group: root
     mode: "0755"
   when: xibo_kiosk_enabled | bool
+
+- name: Drop-in-Verzeichnis für den apt-Exporter anlegen
+  ansible.builtin.file:
+    path: /etc/systemd/system/prometheus-node-exporter-apt.service.d
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+  when: xibo_kiosk_enabled | bool
+
+- name: apt-Exporter im Boot niedrig priorisieren
+  ansible.builtin.copy:
+    content: |
+      [Service]
+      Nice=19
+      CPUWeight=20
+      IOSchedulingClass=idle
+    dest: /etc/systemd/system/prometheus-node-exporter-apt.service.d/low-priority.conf
+    owner: root
+    group: root
+    mode: "0644"
+  when: xibo_kiosk_enabled | bool
+  notify: Reload systemd
 
 - name: Eindeutig unkritische Dienste deaktivieren
   ansible.builtin.systemd:
@@ -181,7 +219,7 @@
   when: xibo_kiosk_enabled | bool
   failed_when: false
 
-- name: Dedizierter X11-Kiosk statt Desktop-Sitzung
+- name: Desktop-Sitzung abschalten
   when: xibo_kiosk_enabled | bool
   block:
     - name: lightdm stoppen und maskieren
@@ -198,6 +236,67 @@
         dest: /etc/systemd/system/default.target
         state: link
         force: true
+
+- name: Kiosk per systemd früh im Boot starten
+  when:
+    - xibo_kiosk_enabled | bool
+    - xibo_kiosk_start_mode == 'systemd'
+  block:
+    - name: Autologin-Drop-in für getty@tty1 entfernen
+      ansible.builtin.file:
+        path: /etc/systemd/system/getty@tty1.service.d/autologin.conf
+        state: absent
+      notify: Reload systemd
+
+    - name: X11-Start aus .profile des Kiosk-Users entfernen
+      ansible.builtin.blockinfile:
+        path: "/home/{{ xibo_kiosk_user }}/.profile"
+        marker: "# {mark} ANSIBLE MANAGED BLOCK (xibo_kiosk role)"
+        state: absent
+
+    - name: X11- und Kiosk-Service deployen
+      ansible.builtin.template:
+        src: "{{ item }}.j2"
+        dest: "/etc/systemd/system/{{ item }}"
+        owner: root
+        group: root
+        mode: "0644"
+      loop:
+        - xibosignage-xorg.service
+        - xibosignage-kiosk.service
+      notify: Reload systemd
+
+    - name: X11- und Kiosk-Service für den nächsten Boot aktivieren
+      ansible.builtin.systemd:
+        name: "{{ item }}"
+        daemon_reload: true
+        enabled: true
+      loop:
+        - xibosignage-xorg.service
+        - xibosignage-kiosk.service
+
+- name: Kiosk per Autologin und startx starten
+  when:
+    - xibo_kiosk_enabled | bool
+    - xibo_kiosk_start_mode == 'getty'
+  block:
+    - name: X11- und Kiosk-Service deaktivieren
+      ansible.builtin.systemd:
+        name: "{{ item }}"
+        enabled: false
+      loop:
+        - xibosignage-kiosk.service
+        - xibosignage-xorg.service
+      failed_when: false
+
+    - name: X11- und Kiosk-Service-Dateien löschen
+      ansible.builtin.file:
+        path: "/etc/systemd/system/{{ item }}"
+        state: absent
+      loop:
+        - xibosignage-kiosk.service
+        - xibosignage-xorg.service
+      notify: Reload systemd
 
     - name: Verzeichnis für getty@tty1-Drop-in anlegen
       ansible.builtin.file:

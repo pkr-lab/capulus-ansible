@@ -1,0 +1,190 @@
+#!/usr/bin/env bash
+set -u
+export LC_ALL=C
+
+SCREEN_FILE=/dev/shm/xibosignage-screen
+POLL_SECONDS={{ xibo_kiosk_display_poll_seconds }}
+FORCED_MODE="{{ xibo_kiosk_display_mode }}"
+DETECT_TIMEOUT={{ xibo_kiosk_display_detect_timeout_seconds }}
+FALLBACK_MODE="{{ xibo_kiosk_display_fallback_mode }}"
+PIXEL_ASPECT="{{ xibo_kiosk_pixel_aspect }}"
+
+mode_listed() {
+  awk -v o="$2" -v m="$3" '
+    $1 == o {found = 1; next}
+    found && /^[^ ]/ {found = 0}
+    found && $1 == m {hit = 1}
+    END {exit hit ? 0 : 1}
+  ' <<<"$1"
+}
+
+first_mode() {
+  awk -v o="$2" '
+    $1 == o {found = 1; next}
+    found && /^[^ ]/ {found = 0}
+    found && $1 ~ /^[0-9]+x[0-9]+$/ {print $1; exit}
+  ' <<<"$1"
+}
+
+kernel_mode() {
+  local file
+  for file in /sys/class/drm/card*-HDMI-A-"${1#*-}"/modes; do
+    if [ -r "$file" ]; then
+      head -1 "$file"
+      return
+    fi
+  done
+}
+
+pixel_aspect() {
+  local info line mm_regex geometry_regex
+  case "$PIXEL_ASPECT" in
+    off|"") return 0 ;;
+    auto) ;;
+    *) printf '%s\n' "$PIXEL_ASPECT"; return 0 ;;
+  esac
+  info=$(xrandr --query 2>/dev/null) || return 0
+  line=$(awk '/ connected/ {print; exit}' <<<"$info")
+  mm_regex='([0-9]+)mm x ([0-9]+)mm'
+  geometry_regex='([0-9]+)x([0-9]+)\+[0-9]+\+[0-9]+'
+  [[ "$line" =~ $mm_regex ]] || return 0
+  local mm_width="${BASH_REMATCH[1]}" mm_height="${BASH_REMATCH[2]}"
+  [[ "$line" =~ $geometry_regex ]] || return 0
+  local px_width="${BASH_REMATCH[1]}" px_height="${BASH_REMATCH[2]}"
+  awk -v mw="$mm_width" -v mh="$mm_height" -v pw="$px_width" -v ph="$px_height" '
+    BEGIN {
+      if (mw < 100 || mh < 100 || pw < 1 || ph < 1) exit
+      k = (mw / mh) / (pw / ph)
+      if (k < 0.5 || k > 3 || (k > 0.92 && k < 1.08)) exit
+      printf "%.3f\n", k
+    }
+  '
+}
+
+add_mode() {
+  local output="$1" spec="$2" width height modeline name
+  [[ "$spec" =~ ^([0-9]+)x([0-9]+)$ ]] || return 1
+  width="${BASH_REMATCH[1]}"
+  height="${BASH_REMATCH[2]}"
+  modeline=$(cvt "$width" "$height" 2>/dev/null | awk '/Modeline/ {$1 = ""; print}')
+  modeline=${modeline//\"/}
+  [ -n "$modeline" ] || return 1
+  name=$(awk '{print $1}' <<<"$modeline")
+  xrandr --newmode $modeline >/dev/null 2>&1 || true
+  xrandr --addmode "$output" "$name" >/dev/null 2>&1 || return 1
+  printf '%s\n' "$name"
+}
+
+write_screen() {
+  local size="$1 $2"
+  if [ "$(cat "$SCREEN_FILE" 2>/dev/null)" != "$size" ]; then
+    printf '%s\n' "$size" >"$SCREEN_FILE.tmp" && chmod 644 "$SCREEN_FILE.tmp" && mv "$SCREEN_FILE.tmp" "$SCREEN_FILE"
+    logger -t xibosignage-display "bildschirm erkannt: $size"
+  fi
+}
+
+# Rueckgabe 0: Modus des Bildschirms erkannt (EDID, Kernel oder erzwungen)
+# Rueckgabe 1: nichts erkannt; mit Argument "fallback" wird stattdessen FALLBACK_MODE gesetzt
+apply_once() {
+  local allow_fallback="${1:-}" info output preferred current wanted="" detected=0 kmode
+  info=$(xrandr --query 2>/dev/null) || return 1
+  output=$(awk '/ connected/ {print $1; exit}' <<<"$info")
+
+  if [ -n "$output" ]; then
+    preferred=$(awk -v o="$output" '
+      $1 == o {found = 1; next}
+      found && /^[^ ]/ {found = 0}
+      found && /\+/ {print $1; exit}
+    ' <<<"$info")
+    current=$(awk -v o="$output" '
+      $1 == o {found = 1; next}
+      found && /^[^ ]/ {found = 0}
+      found && /\*/ {print $1; exit}
+    ' <<<"$info")
+
+    if [ -n "$FORCED_MODE" ]; then
+      if mode_listed "$info" "$output" "$FORCED_MODE"; then
+        wanted=$FORCED_MODE
+      else
+        wanted=$(add_mode "$output" "$FORCED_MODE")
+      fi
+      if [ -n "$wanted" ]; then
+        detected=1
+      else
+        logger -t xibosignage-display "erzwungener Modus $FORCED_MODE auf $output nicht verfuegbar"
+      fi
+    fi
+
+    if [ "$detected" = 0 ] && [ -n "$preferred" ]; then
+      wanted=$preferred
+      detected=1
+    fi
+
+    if [ "$detected" = 0 ]; then
+      kmode=$(kernel_mode "$output")
+      if [ -n "$kmode" ] && mode_listed "$info" "$output" "$kmode"; then
+        wanted=$kmode
+        detected=1
+      fi
+    fi
+  fi
+
+  if [ "$detected" = 0 ]; then
+    [ "$allow_fallback" = fallback ] || return 1
+    if [[ "$FALLBACK_MODE" =~ ^[0-9]+x[0-9]+$ ]]; then
+      if [ -z "$output" ]; then
+        logger -t xibosignage-display "kein Bildschirm erkannt, melde Fallback $FALLBACK_MODE"
+        write_screen "${FALLBACK_MODE%x*}" "${FALLBACK_MODE#*x}"
+        return 1
+      fi
+      if mode_listed "$info" "$output" "$FALLBACK_MODE"; then
+        wanted=$FALLBACK_MODE
+      else
+        wanted=$(add_mode "$output" "$FALLBACK_MODE")
+      fi
+      logger -t xibosignage-display "keine Aufloesung von $output erkannt, verwende Fallback ${wanted:-keinen}"
+    fi
+    if [ -z "$wanted" ] && [ -n "$output" ]; then
+      wanted=$(first_mode "$info" "$output")
+      logger -t xibosignage-display "kein Fallback moeglich, verwende ${wanted:-keinen} (aktuell ${current:-keiner})"
+    fi
+  fi
+
+  if [ -n "$wanted" ] && [ "$wanted" != "${current:-}" ]; then
+    logger -t xibosignage-display "setze Modus $wanted auf $output (vorher ${current:-keiner})"
+    xrandr --output "$output" --mode "$wanted" >/dev/null 2>&1 || true
+    current=$wanted
+  fi
+
+  if [[ "${current:-}" =~ ^([0-9]+)x([0-9]+) ]]; then
+    write_screen "${BASH_REMATCH[1]}" "${BASH_REMATCH[2]}"
+  fi
+  [ "$detected" = 1 ]
+}
+
+wait_for_display() {
+  local deadline=$((SECONDS + DETECT_TIMEOUT))
+  until apply_once; do
+    if [ "$SECONDS" -ge "$deadline" ]; then
+      logger -t xibosignage-display "nach ${DETECT_TIMEOUT}s keine Aufloesung erkannt"
+      apply_once fallback
+      return 0
+    fi
+    sleep 1
+  done
+}
+
+if [ "${1:-}" = "once" ]; then
+  wait_for_display
+  exit 0
+fi
+
+if [ "${1:-}" = "par" ]; then
+  pixel_aspect
+  exit 0
+fi
+
+while true; do
+  apply_once || true
+  sleep "$POLL_SECONDS"
+done

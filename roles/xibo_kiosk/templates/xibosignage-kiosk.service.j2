@@ -1,15 +1,23 @@
 [Unit]
-Description=xibosignage Slideshow Kiosk
-After=graphical.target xibosignage-webserver.service
-Wants=xibosignage-webserver.service
+Description=xibosignage Chromium-Kiosk
+DefaultDependencies=no
+After=local-fs.target xibosignage-xorg.service
+Requires=xibosignage-xorg.service
+Before=shutdown.target
+Conflicts=shutdown.target
 
 [Service]
 Type=simple
 User={{ xibo_kiosk_user }}
+SupplementaryGroups={{ xibo_kiosk_supplementary_groups | join(' ') }}
 Environment=DISPLAY=:0
+Environment=XAUTHORITY=/run/xibosignage/Xauthority
+Environment=XDG_RUNTIME_DIR=/run/xibosignage-kiosk
+RuntimeDirectory=xibosignage-kiosk
+RuntimeDirectoryMode=0700
 ExecStart=/usr/local/bin/xibosignage-kiosk-start.sh
 Restart=always
-RestartSec=5
+RestartSec=2
 
 [Install]
-WantedBy=graphical.target
+WantedBy=multi-user.target
