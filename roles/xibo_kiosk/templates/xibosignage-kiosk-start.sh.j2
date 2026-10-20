@@ -1,31 +1,51 @@
 #!/usr/bin/env bash
-set -euo pipefail
+set -u
 
-export DISPLAY=:0
+log() {
+  logger -t xibosignage-kiosk "$* uptime=$(cut -d' ' -f1 /proc/uptime)"
+}
 
-xset s off || true
-xset s noblank || true
-xset -dpms || true
+log "x11 bereit"
 
-until curl --fail --silent --max-time 2 "http://127.0.0.1:{{ xibo_kiosk_http_port }}/" >/dev/null 2>&1; do
-  sleep 1
-done
+openbox &
+unclutter -idle {{ xibo_kiosk_cursor_hide_seconds }} &
 
 if command -v chromium-browser >/dev/null 2>&1; then
   CHROMIUM_BIN=chromium-browser
 elif command -v chromium >/dev/null 2>&1; then
   CHROMIUM_BIN=chromium
 else
-  echo "Weder chromium-browser noch chromium gefunden." >&2
+  log "weder chromium-browser noch chromium gefunden"
   exit 1
 fi
 
-exec "$CHROMIUM_BIN" \
-  --kiosk \
-  --incognito \
-  --noerrdialogs \
-  --disable-infobars \
-  --disable-session-crashed-bubble \
-  --autoplay-policy=no-user-gesture-required \
-  --check-for-update-interval=31536000 \
-  "http://127.0.0.1:{{ xibo_kiosk_http_port }}/"
+PROFILE_DIR=/dev/shm/xibosignage-chromium
+
+while true; do
+  rm -rf "$PROFILE_DIR"
+  log "starte chromium"
+  "$CHROMIUM_BIN" \
+    --kiosk \
+    --user-data-dir="$PROFILE_DIR" \
+    --ozone-platform=x11 \
+    --noerrdialogs \
+    --disable-infobars \
+    --disable-session-crashed-bubble \
+    --no-first-run \
+    --no-default-browser-check \
+    --disable-features=Translate,MediaRouter \
+    --disable-background-networking \
+    --disable-component-update \
+    --disable-sync \
+    --disable-breakpad \
+    --password-store=basic \
+    --overscroll-history-navigation=0 \
+    --disk-cache-size=33554432 \
+    --check-for-update-interval=31536000 \
+{% for flag in xibo_kiosk_chromium_extra_flags %}
+    {{ flag }} \
+{% endfor %}
+    "file://{{ xibo_kiosk_web_root }}/index.html"
+  log "chromium beendet, neustart"
+  sleep 1
+done
