@@ -12,6 +12,7 @@ argocd_server_nodeport_enabled: true
 
 argocd_platform_apps:
   - alert-caller
+  - capulus-operator
   - sealed-secrets
   - kubeseal-webgui
   - lldap
@@ -48,6 +49,7 @@ argocd_apply_network_policies: true
 
 argocd_network_policy_refined_namespaces:
   - alert-caller
+  - capulus-operator
   - n8n
   - alamos-apager
   - alamos-relay
