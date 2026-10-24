@@ -11,8 +11,14 @@ xibo_kiosk_sync_interval_seconds: 30
 xibo_kiosk_sync_boot_delay_seconds: 20
 xibo_kiosk_sync_settle_seconds: 5
 xibo_kiosk_manifest_reload_seconds: 10
+# Wartezeit, bevor eine aus der Quelle verschwundene Bilddatei lokal geloescht
+# wird. Verhindert, dass der Browser mit einem noch nicht aktualisierten
+# Manifest auf eine bereits geloeschte Datei trifft (404 -> Slide wird sofort
+# uebersprungen statt die volle Anzeigedauer zu laufen). Sollte deutlich ueber
+# xibo_kiosk_manifest_reload_seconds liegen.
+xibo_kiosk_orphan_grace_seconds: 30
 
-xibo_kiosk_slide_duration_ms: 10000
+xibo_kiosk_slide_duration_ms: 20000
 
 xibo_kiosk_image_max_width: 1920
 xibo_kiosk_image_max_height: 1080
@@ -21,10 +27,21 @@ xibo_kiosk_image_jpeg_quality: 85
 xibo_kiosk_cursor_hide_seconds: 3
 
 xibo_kiosk_display_poll_seconds: 5
-xibo_kiosk_display_mode: ""
-xibo_kiosk_display_detect_timeout_seconds: 45
-xibo_kiosk_display_fallback_mode: "1920x1080"
+xibo_kiosk_display_mode: "1920x1080"
 xibo_kiosk_pixel_aspect: auto
+
+# Manche Displays/Kabel liefern kein EDID (0 Bytes), wodurch der vc4-KMS-Treiber
+# xibo_kiosk_display_mode nie als gueltigen Modus akzeptiert ("Configure crtc
+# 0 failed"). Mit xibo_kiosk_edid_force wird stattdessen eine synthetische
+# EDID-Datei per drm.edid_firmware= Kernel-Parameter erzwungen. Die Datei via
+# scripts/generate-edid.py erzeugen (siehe dortige Kommentare) und das Ergebnis
+# als xibo_kiosk_edid_base64 in host_vars hinterlegen; sie muss zu
+# xibo_kiosk_display_mode passen. Nach einer Aenderung ist ein Reboot des
+# Geraets noetig, da es sich um einen Kernel-cmdline-Parameter handelt.
+xibo_kiosk_edid_force: false
+xibo_kiosk_edid_connector: ""
+xibo_kiosk_edid_filename: "{{ xibo_kiosk_display_mode }}.bin"
+xibo_kiosk_edid_base64: ""
 
 xibo_kiosk_user: "pi"
 

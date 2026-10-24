@@ -13,7 +13,8 @@ ExecStart=/usr/local/bin/xibosignage-sync.py \
   --max-height {{ xibo_kiosk_image_max_height }} \
   --jpeg-quality {{ xibo_kiosk_image_jpeg_quality }} \
   --screen-file /dev/shm/xibosignage-screen \
-  --settle-seconds {{ xibo_kiosk_sync_settle_seconds }}
+  --settle-seconds {{ xibo_kiosk_sync_settle_seconds }} \
+  --orphan-grace-seconds {{ xibo_kiosk_orphan_grace_seconds }}
 TimeoutStartSec=600
 Nice=19
 IOSchedulingClass=idle

@@ -8,6 +8,7 @@
       - chromium-browser
       - unclutter
       - x11-xserver-utils
+      - xcvt
       - xserver-xorg
       - xinit
       - xauth
@@ -168,6 +169,53 @@
     - xibosignage-sync.timer
   when: xibo_kiosk_enabled | bool
   notify: Restart xibosignage sync timer
+
+- name: EDID-Erzwingung pruefen
+  ansible.builtin.assert:
+    that:
+      - xibo_kiosk_edid_connector | length > 0
+      - xibo_kiosk_edid_base64 | length > 0
+    fail_msg: >-
+      xibo_kiosk_edid_force ist aktiv, aber xibo_kiosk_edid_connector oder
+      xibo_kiosk_edid_base64 ist leer. Mit scripts/generate-edid.py eine
+      passende EDID erzeugen (siehe Kommentar bei xibo_kiosk_edid_force in
+      roles/xibo_kiosk/defaults/main.yml).
+  when: xibo_kiosk_enabled | bool and xibo_kiosk_edid_force | bool
+
+- name: EDID-Firmware-Verzeichnis anlegen
+  ansible.builtin.file:
+    path: /lib/firmware/edid
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+  when: xibo_kiosk_enabled | bool and xibo_kiosk_edid_force | bool
+
+- name: Synthetische EDID-Datei deployen (Display liefert kein echtes EDID)
+  ansible.builtin.copy:
+    content: "{{ xibo_kiosk_edid_base64 | b64decode }}"
+    dest: "/lib/firmware/edid/{{ xibo_kiosk_edid_filename }}"
+    owner: root
+    group: root
+    mode: "0644"
+  when: xibo_kiosk_enabled | bool and xibo_kiosk_edid_force | bool
+
+- name: cmdline.txt einlesen
+  ansible.builtin.slurp:
+    src: /boot/firmware/cmdline.txt
+  register: xibo_kiosk_cmdline_raw
+  when: xibo_kiosk_enabled | bool and xibo_kiosk_edid_force | bool
+
+- name: drm.edid_firmware-Parameter in cmdline.txt sicherstellen
+  ansible.builtin.lineinfile:
+    path: /boot/firmware/cmdline.txt
+    regexp: '^.*$'
+    line: >-
+      {{ (xibo_kiosk_cmdline_raw.content | b64decode | trim
+          | regex_replace('\s*drm\.edid_firmware=\S+', ''))
+         + ' drm.edid_firmware=' + xibo_kiosk_edid_connector + ':edid/' + xibo_kiosk_edid_filename }}
+  when: xibo_kiosk_enabled | bool and xibo_kiosk_edid_force | bool
+  notify: Hinweis auf noetigen Reboot nach EDID-Erzwingung
 
 - name: Bildschirmmodus-Skript deployen
   ansible.builtin.template:

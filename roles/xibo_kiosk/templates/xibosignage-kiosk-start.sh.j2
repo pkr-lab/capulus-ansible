@@ -16,7 +16,7 @@ log "x11 bereit"
 /usr/local/bin/xibosignage-display-mode.sh once
 PIXEL_ASPECT=$(/usr/local/bin/xibosignage-display-mode.sh par)
 log "bildschirm ${PIXEL_ASPECT:+seitenverhaeltnis-korrektur $PIXEL_ASPECT}"
-/usr/local/bin/xibosignage-display-mode.sh &
+# Dauerhafter Scan-Modus (periodisches Neu-Anwenden) ist deaktiviert.
 openbox &
 unclutter -idle {{ xibo_kiosk_cursor_hide_seconds }} &
 
