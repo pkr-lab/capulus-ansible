@@ -1,0 +1,15 @@
+---
+
+# Display liefert kein EDID (0 Bytes trotz "connected"); ohne das erzwingt
+# der vc4-KMS-Treiber nur seine Sicherheits-Modusliste (1024x768 und kleiner).
+# Erzeugt mit: scripts/generate-edid.py 1920x1080 --refresh 60 --base64
+xibo_kiosk_edid_force: true
+xibo_kiosk_edid_connector: "HDMI-A-1"
+xibo_kiosk_edid_base64: "AP///////wBBcgEAAAAAAAEiAQSiMBt4Bu6Ro1RMmSYPUFQAAAABAQEBAQEBAQEBAQEBAQEBAjqAGHE4LUBYLEUA4A4RAAAeAAAAEAAAAAAAAAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAAAAAAHs="
+
+# Seit dem Umzug auf eine andere Netzwerkanbindung (nur noch per Tailscale statt
+# direkt im LAN) ist das NAS (192.168.178.97, xibo_kiosk_nfs_server) nicht mehr
+# erreichbar. homeserver annonciert die alte LAN-Subnetzroute 192.168.178.0/24
+# per Tailscale (bereits auf dem Tailnet genehmigt), infotafel akzeptiert sie
+# aber standardmaessig nicht (tailscale_accept_routes default: false).
+tailscale_accept_routes: true

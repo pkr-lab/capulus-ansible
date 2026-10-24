@@ -5,8 +5,6 @@ export LC_ALL=C
 SCREEN_FILE=/dev/shm/xibosignage-screen
 POLL_SECONDS={{ xibo_kiosk_display_poll_seconds }}
 FORCED_MODE="{{ xibo_kiosk_display_mode }}"
-DETECT_TIMEOUT={{ xibo_kiosk_display_detect_timeout_seconds }}
-FALLBACK_MODE="{{ xibo_kiosk_display_fallback_mode }}"
 PIXEL_ASPECT="{{ xibo_kiosk_pixel_aspect }}"
 
 mode_listed() {
@@ -16,24 +14,6 @@ mode_listed() {
     found && $1 == m {hit = 1}
     END {exit hit ? 0 : 1}
   ' <<<"$1"
-}
-
-first_mode() {
-  awk -v o="$2" '
-    $1 == o {found = 1; next}
-    found && /^[^ ]/ {found = 0}
-    found && $1 ~ /^[0-9]+x[0-9]+$/ {print $1; exit}
-  ' <<<"$1"
-}
-
-kernel_mode() {
-  local file
-  for file in /sys/class/drm/card*-HDMI-A-"${1#*-}"/modes; do
-    if [ -r "$file" ]; then
-      head -1 "$file"
-      return
-    fi
-  done
 }
 
 pixel_aspect() {
@@ -83,99 +63,40 @@ write_screen() {
   fi
 }
 
-# Rueckgabe 0: Modus des Bildschirms erkannt (EDID, Kernel oder erzwungen)
-# Rueckgabe 1: nichts erkannt; mit Argument "fallback" wird stattdessen FALLBACK_MODE gesetzt
+# Setzt den Bildschirm fest auf FORCED_MODE; kein Scan nach der tatsaechlichen Aufloesung.
 apply_once() {
-  local allow_fallback="${1:-}" info output preferred current wanted="" detected=0 kmode
+  local info output current wanted=""
   info=$(xrandr --query 2>/dev/null) || return 1
   output=$(awk '/ connected/ {print $1; exit}' <<<"$info")
+  [ -n "$output" ] || return 1
 
-  if [ -n "$output" ]; then
-    preferred=$(awk -v o="$output" '
-      $1 == o {found = 1; next}
-      found && /^[^ ]/ {found = 0}
-      found && /\+/ {print $1; exit}
-    ' <<<"$info")
-    current=$(awk -v o="$output" '
-      $1 == o {found = 1; next}
-      found && /^[^ ]/ {found = 0}
-      found && /\*/ {print $1; exit}
-    ' <<<"$info")
+  current=$(awk -v o="$output" '
+    $1 == o {found = 1; next}
+    found && /^[^ ]/ {found = 0}
+    found && /\*/ {print $1; exit}
+  ' <<<"$info")
 
-    if [ -n "$FORCED_MODE" ]; then
-      if mode_listed "$info" "$output" "$FORCED_MODE"; then
-        wanted=$FORCED_MODE
-      else
-        wanted=$(add_mode "$output" "$FORCED_MODE")
-      fi
-      if [ -n "$wanted" ]; then
-        detected=1
-      else
-        logger -t xibosignage-display "erzwungener Modus $FORCED_MODE auf $output nicht verfuegbar"
-      fi
-    fi
-
-    if [ "$detected" = 0 ] && [ -n "$preferred" ]; then
-      wanted=$preferred
-      detected=1
-    fi
-
-    if [ "$detected" = 0 ]; then
-      kmode=$(kernel_mode "$output")
-      if [ -n "$kmode" ] && mode_listed "$info" "$output" "$kmode"; then
-        wanted=$kmode
-        detected=1
-      fi
-    fi
+  if mode_listed "$info" "$output" "$FORCED_MODE"; then
+    wanted=$FORCED_MODE
+  else
+    wanted=$(add_mode "$output" "$FORCED_MODE")
   fi
 
-  if [ "$detected" = 0 ]; then
-    [ "$allow_fallback" = fallback ] || return 1
-    if [[ "$FALLBACK_MODE" =~ ^[0-9]+x[0-9]+$ ]]; then
-      if [ -z "$output" ]; then
-        logger -t xibosignage-display "kein Bildschirm erkannt, melde Fallback $FALLBACK_MODE"
-        write_screen "${FALLBACK_MODE%x*}" "${FALLBACK_MODE#*x}"
-        return 1
-      fi
-      if mode_listed "$info" "$output" "$FALLBACK_MODE"; then
-        wanted=$FALLBACK_MODE
-      else
-        wanted=$(add_mode "$output" "$FALLBACK_MODE")
-      fi
-      logger -t xibosignage-display "keine Aufloesung von $output erkannt, verwende Fallback ${wanted:-keinen}"
-    fi
-    if [ -z "$wanted" ] && [ -n "$output" ]; then
-      wanted=$(first_mode "$info" "$output")
-      logger -t xibosignage-display "kein Fallback moeglich, verwende ${wanted:-keinen} (aktuell ${current:-keiner})"
-    fi
+  if [ -z "$wanted" ]; then
+    logger -t xibosignage-display "Modus $FORCED_MODE auf $output nicht verfuegbar"
+    return 1
   fi
 
-  if [ -n "$wanted" ] && [ "$wanted" != "${current:-}" ]; then
+  if [ "$wanted" != "${current:-}" ]; then
     logger -t xibosignage-display "setze Modus $wanted auf $output (vorher ${current:-keiner})"
     xrandr --output "$output" --mode "$wanted" >/dev/null 2>&1 || true
-    current=$wanted
   fi
 
-  if [[ "${current:-}" =~ ^([0-9]+)x([0-9]+) ]]; then
-    write_screen "${BASH_REMATCH[1]}" "${BASH_REMATCH[2]}"
-  fi
-  [ "$detected" = 1 ]
-}
-
-wait_for_display() {
-  local deadline=$((SECONDS + DETECT_TIMEOUT))
-  until apply_once; do
-    if [ "$SECONDS" -ge "$deadline" ]; then
-      logger -t xibosignage-display "nach ${DETECT_TIMEOUT}s keine Aufloesung erkannt"
-      apply_once fallback
-      return 0
-    fi
-    sleep 1
-  done
+  write_screen "${FORCED_MODE%x*}" "${FORCED_MODE#*x}"
 }
 
 if [ "${1:-}" = "once" ]; then
-  wait_for_display
+  apply_once
   exit 0
 fi
 
