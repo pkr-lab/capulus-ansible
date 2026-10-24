@@ -12,6 +12,7 @@ IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".gif", ".webp"}
 RESIZABLE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp"}
 PARTIAL_DIR = ".partial"
 TARGET_MARKER = ".target"
+ORPHAN_STATE_FILE = ".orphans.json"
 MIN_SCREEN = (640, 480)
 
 
@@ -30,6 +31,7 @@ def parse_args():
     parser.add_argument("--screen-file")
     parser.add_argument("--settle-seconds", type=int, default=5)
     parser.add_argument("--mount-timeout", type=int, default=30)
+    parser.add_argument("--orphan-grace-seconds", type=int, default=30)
     return parser.parse_args()
 
 
@@ -163,13 +165,14 @@ def sync_file(name, source_dir, media_dir, source_stat, args):
     return True
 
 
-def write_manifest(media_dir, manifest_path):
+def write_manifest(media_dir, manifest_path, names):
     items = []
-    for name in sorted(list_cache(media_dir)):
-        items.append({
-            "src": "media/" + quote(name),
-            "v": int(os.stat(os.path.join(media_dir, name)).st_mtime),
-        })
+    for name in sorted(names):
+        try:
+            mtime = int(os.stat(os.path.join(media_dir, name)).st_mtime)
+        except OSError:
+            continue
+        items.append({"src": "media/" + quote(name), "v": mtime})
     content = "window.XIBO_MANIFEST=" + json.dumps(items, separators=(",", ":")) + ";\n"
     try:
         with open(manifest_path, "r", encoding="utf-8") as handle:
@@ -218,6 +221,48 @@ def write_marker(media_dir, value):
     os.replace(path + ".tmp", path)
 
 
+def load_orphan_state(media_dir):
+    try:
+        with open(os.path.join(media_dir, ORPHAN_STATE_FILE), "r", encoding="utf-8") as handle:
+            return json.load(handle)
+    except (OSError, ValueError):
+        return {}
+
+
+def save_orphan_state(media_dir, state):
+    path = os.path.join(media_dir, ORPHAN_STATE_FILE)
+    temporary = path + ".tmp"
+    with open(temporary, "w", encoding="utf-8") as handle:
+        json.dump(state, handle)
+    os.replace(temporary, path)
+
+
+def remove_orphans(media_dir, keep_names, grace_seconds):
+    # Der Browser haelt sein Manifest bis zu REFRESH_MANIFEST_MS im Speicher;
+    # eine Datei, die direkt beim Verschwinden aus der Quelle geloescht wird,
+    # kann in dieser Zeit noch angefragt werden (404 -> Slide wird sofort
+    # uebersprungen). write_manifest() nimmt verschwundene Dateien sofort aus
+    # dem Manifest, die eigentliche Loeschung wartet aber eine Gnadenfrist ab.
+    missing = list_cache(media_dir) - set(keep_names)
+    if not missing:
+        save_orphan_state(media_dir, {})
+        return
+    now = time.time()
+    previously_seen = load_orphan_state(media_dir)
+    still_pending = {}
+    for name in missing:
+        first_seen = previously_seen.get(name, now)
+        if now - first_seen >= grace_seconds:
+            try:
+                os.unlink(os.path.join(media_dir, name))
+                log("entfernt: %s" % name)
+            except OSError as error:
+                log("entfernen fehlgeschlagen %s: %s" % (name, error))
+        else:
+            still_pending[name] = first_seen
+    save_orphan_state(media_dir, still_pending)
+
+
 def prepare_media_dir(media_dir):
     os.makedirs(media_dir, exist_ok=True)
     partial = os.path.join(media_dir, PARTIAL_DIR)
@@ -234,6 +279,7 @@ def main():
     if force:
         log("Zielaufloesung %s, Bilder werden neu verarbeitet" % target)
     failed = False
+    source_entries = None
 
     exit_code = 0
     if not ensure_mounted(args.source, args.mount_timeout):
@@ -266,17 +312,13 @@ def main():
                     log("marker schreiben fehlgeschlagen: %s" % error)
 
             if source_entries:
-                for name in list_cache(args.media) - set(source_entries):
-                    try:
-                        os.unlink(os.path.join(args.media, name))
-                        log("entfernt: %s" % name)
-                    except OSError as error:
-                        log("entfernen fehlgeschlagen %s: %s" % (name, error))
+                remove_orphans(args.media, set(source_entries), args.orphan_grace_seconds)
             else:
                 log("Quelle ohne Bilder, behalte Cache")
 
+    manifest_names = set(source_entries) if source_entries else list_cache(args.media)
     try:
-        write_manifest(args.media, args.manifest)
+        write_manifest(args.media, args.manifest, manifest_names)
         fsync_path(args.media)
     except OSError as error:
         log("manifest schreiben fehlgeschlagen: %s" % error)
