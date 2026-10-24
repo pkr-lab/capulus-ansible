@@ -8,3 +8,9 @@
     name: xibosignage-sync.timer
     daemon_reload: true
     state: restarted
+
+- name: Hinweis auf noetigen Reboot nach EDID-Erzwingung
+  ansible.builtin.debug:
+    msg: >-
+      cmdline.txt wurde fuer die erzwungene EDID geaendert; ein Reboot des
+      Geraets ist noetig, damit der Kernel-Parameter wirkt.
