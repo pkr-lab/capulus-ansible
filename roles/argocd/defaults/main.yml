@@ -37,6 +37,7 @@ argocd_workloads_apps:
   - carplay-api
   - github-release-watcher
   - isc-news-bot
+  - mdm
   - mediamtx
   - n8n
   - ollama
@@ -56,6 +57,7 @@ argocd_network_policy_refined_namespaces:
   - carplay-api
   - github-release-watcher
   - isc-news-bot
+  - mdm
   - mediamtx
   - uptime-kuma
   - vaultwarden
@@ -82,8 +84,11 @@ argocd_network_policy_excluded_apps:
   - ollama
 
 argocd_network_policy_extra_ingress:
+  mdm:
+    - n8n
   n8n:
     - alamos-relay
+    - mdm
   ntfy:
     - carplay-api
     - alamos-apager
