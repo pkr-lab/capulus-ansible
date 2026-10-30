@@ -14,6 +14,8 @@
       tags: [xibo-kiosk, kiosk]
     - role: ssh_hardening
       tags: [ssh-hardening, security]
+    - role: infotafel_poweroff
+      tags: [infotafel-poweroff, ssh]
     - role: ntfy_publisher
       tags: [ntfy-publisher, thermal]
     - role: thermal_watchdog
