@@ -42,6 +42,7 @@ argocd_workloads_apps:
   - n8n
   - ollama
   - pacman
+  - ticket-gate
   - uptime-kuma
   - vaultwarden
   - zammad
@@ -62,6 +63,7 @@ argocd_network_policy_refined_namespaces:
   - uptime-kuma
   - vaultwarden
   - zammad
+  - ticket-gate
   - lldap
   - sealed-secrets
   - kubeseal-webgui
@@ -100,6 +102,8 @@ argocd_network_policy_extra_ingress:
     - argo-workflows
   uptime-kuma:
     - carplay-api
+  zammad:
+    - ticket-gate
   ntfy-bridge:
     - monitoring
   minio:
