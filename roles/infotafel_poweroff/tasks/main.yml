@@ -1,0 +1,27 @@
+---
+- name: warnen, falls noch kein n8n-key für das herunterfahren gesetzt ist
+  ansible.builtin.debug:
+    msg: >-
+      WARNUNG: infotafel_poweroff_public_key ist leer, der n8n-Workflow
+      kann den Infotafel-Pi noch nicht herunterfahren.
+  when: (infotafel_poweroff_public_key | length) < 20
+
+- name: n8n-key für das herunterfahren autorisieren (forced command)
+  ansible.posix.authorized_key:
+    user: "{{ infotafel_poweroff_user }}"
+    state: present
+    key: "{{ infotafel_poweroff_public_key }}"
+    key_options: >-
+      command="sudo {{ infotafel_poweroff_command }}",no-agent-forwarding,no-port-forwarding,no-pty,no-X11-forwarding
+    comment: "n8n-infotafel-poweroff"
+  when: (infotafel_poweroff_public_key | length) >= 20
+
+- name: passwortlosen sudo für das herunterfahren erlauben
+  ansible.builtin.copy:
+    dest: /etc/sudoers.d/infotafel-poweroff-n8n
+    content: |
+      {{ infotafel_poweroff_user }} ALL=(root) NOPASSWD: {{ infotafel_poweroff_command }}
+    owner: root
+    group: root
+    mode: "0440"
+    validate: "visudo -cf %s"

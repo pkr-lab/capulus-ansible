@@ -18,3 +18,5 @@ xibo_kiosk_nfs_server: "192.168.178.97"
 xibo_kiosk_nfs_path: "/volume1/k8s-storage/xibosignage-display"
 
 journal_upload_hosts_entry_ip: "192.168.178.94"
+
+infotafel_poweroff_public_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIC6Yi9WO/AUWUixjifpCmAqse+NO2Qa6XSTkDrFhAVN5 n8n-infotafel-poweroff"
