@@ -1,0 +1,4 @@
+---
+infotafel_poweroff_user: "{{ xibo_kiosk_user }}"
+infotafel_poweroff_public_key: ""
+infotafel_poweroff_command: /usr/bin/systemctl poweroff
