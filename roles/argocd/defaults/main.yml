@@ -40,7 +40,6 @@ argocd_workloads_apps:
   - mdm
   - mediamtx
   - n8n
-  - ollama
   - pacman
   - ticket-gate
   - uptime-kuma
@@ -82,8 +81,7 @@ argocd_network_policy_refined_namespaces:
   - headlamp
   - traefik-config
 
-argocd_network_policy_excluded_apps:
-  - ollama
+argocd_network_policy_excluded_apps: []
 
 argocd_network_policy_extra_ingress:
   mdm:

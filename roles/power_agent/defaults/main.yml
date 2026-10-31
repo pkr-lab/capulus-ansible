@@ -23,3 +23,7 @@ power_agent_ssh_key: "{{ cluster_power_manager_ssh_key_path }}"
 power_agent_kubeconfig: "{{ cluster_power_manager_kubeconfig }}"
 power_agent_state_dir: "{{ cluster_power_manager_state_dir }}"
 power_agent_targets: "{{ cluster_power_manager_workers }}"
+power_agent_wake_only_targets:
+  - name: ollama-pc
+    ansible_host: "{{ hostvars.get('ollama-pc', {}).ansible_host | default('') }}"
+    mac_address: "{{ hostvars.get('ollama-pc', {}).wake_on_lan_mac_address | default('') }}"

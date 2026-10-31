@@ -1,0 +1,10 @@
+---
+
+hostname: ollama-pc
+
+wake_on_lan_mac_address: "34:5a:60:50:f5:ec"
+
+ollama_pc_interface: enp7s0
+ollama_pc_nm_connection: netplan-enp7s0
+
+ansible_become_exe: /usr/bin/sudo.ws

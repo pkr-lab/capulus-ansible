@@ -1,0 +1,8 @@
+---
+
+- name: Ollama auf dem Desktop-PC einrichten
+  hosts: ollama-pc
+  become: true
+  roles:
+    - role: ollama_pc
+      tags: [ollama-pc, llm]

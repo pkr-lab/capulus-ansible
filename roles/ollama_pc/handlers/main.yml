@@ -1,0 +1,13 @@
+---
+
+- name: systemd neu laden
+  ansible.builtin.systemd:
+    daemon_reload: true
+  listen: ollama_pc_daemon_reload
+
+- name: ollama neu starten
+  ansible.builtin.systemd:
+    name: ollama.service
+    state: restarted
+  when: not (ollama_pc_dry_run_without_ollama | default(false))
+  listen: ollama_pc_restart_ollama
