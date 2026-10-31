@@ -5,6 +5,7 @@ HS2_PLAYBOOK := worker-0.yml
 HS3_PLAYBOOK := worker-1.yml
 ENTW_PLAYBOOK := entw.yml
 PROD_PLAYBOOK := prod.yml
+OLLAMA_PC_PLAYBOOK := ollama-pc.yml
 
 .DEFAULT_GOAL := help
 
@@ -86,6 +87,19 @@ worker-1: ## Deploy k3s agent + watchdogs on worker-1 (192.168.178.96).
 
 worker-1-check: ## Dry-run the worker-1 playbook (no changes applied).
 	ansible-playbook -i $(INVENTORY) $(HS3_PLAYBOOK) --check --diff $(VAULT_OPTS)
+
+.PHONY: ollama-pc ollama-pc-check ollama-pc-local ollama-pc-local-check
+ollama-pc: ## Ollama auf dem Desktop-PC einrichten (per SSH, fragt sudo-Passwort ab).
+	ansible-playbook -i $(INVENTORY) $(OLLAMA_PC_PLAYBOOK) --ask-become-pass $(VAULT_OPTS)
+
+ollama-pc-check: ## Dry-run des Ollama-PC-Playbooks (per SSH).
+	ansible-playbook -i $(INVENTORY) $(OLLAMA_PC_PLAYBOOK) --check --diff --ask-become-pass $(VAULT_OPTS)
+
+ollama-pc-local-check: ## Dry-run des Ollama-PC-Playbooks direkt auf dem Desktop-PC (ohne SSH).
+	ansible-playbook -i $(INVENTORY) $(OLLAMA_PC_PLAYBOOK) --limit ollama-pc --connection local --check --diff --ask-become-pass $(VAULT_OPTS)
+
+ollama-pc-local: ## Ollama-PC-Playbook direkt auf dem Desktop-PC ausfuehren (ohne SSH, fragt sudo-Passwort ab).
+	ansible-playbook -i $(INVENTORY) $(OLLAMA_PC_PLAYBOOK) --limit ollama-pc --connection local --ask-become-pass $(VAULT_OPTS)
 
 .PHONY: prod prod-check
 prod: ## Deploy PROD-Cluster (k3s) in der KVM-VM auf homeserver (192.168.178.99, pkr-lab-docs/capulus-core/4-planung/40080 Phase 2.5). VM muss laufen (make libvirt-host).
