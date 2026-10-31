@@ -1,0 +1,10 @@
+[Unit]
+Description=Suspend bei Leerlauf ohne Ollama-Aktivitaet
+After=ollama.service
+
+[Service]
+Type=oneshot
+Environment="IDLE_MINUTES={{ ollama_pc_idle_suspend_minutes }}"
+Environment="MAX_LOAD={{ ollama_pc_idle_suspend_max_load }}"
+Environment="OLLAMA_PORT={{ ollama_pc_port }}"
+ExecStart=/usr/local/sbin/ollama-idle-suspend

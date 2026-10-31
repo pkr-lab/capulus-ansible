@@ -1,0 +1,30 @@
+---
+
+ollama_pc_install_script_url: https://ollama.com/install.sh
+ollama_pc_version: ""
+
+ollama_pc_listen: "0.0.0.0:11434"
+ollama_pc_port: 11434
+ollama_pc_keep_alive: 30m
+ollama_pc_flash_attention: 1
+ollama_pc_kv_cache_type: q8_0
+ollama_pc_context_length: 16384
+
+ollama_pc_models:
+  - gemma3:27b-it-q8_0
+ollama_pc_pull_timeout_seconds: 7200
+
+ollama_pc_interface: "{{ ansible_default_ipv4.interface }}"
+ollama_pc_nm_connection: ""
+
+ollama_pc_gpu_power_limit_watts: 280
+
+ollama_pc_ufw_enabled: true
+ollama_pc_ufw_allowed_sources:
+  - "{{ hostvars['homeserver']['ansible_host'] }}"
+ollama_pc_ufw_ssh_sources:
+  - "{{ local_subnet }}"
+
+ollama_pc_idle_suspend_enabled: true
+ollama_pc_idle_suspend_minutes: 15
+ollama_pc_idle_suspend_max_load: "1.0"
