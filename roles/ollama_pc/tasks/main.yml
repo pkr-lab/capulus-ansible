@@ -1,0 +1,272 @@
+---
+
+- name: nvidia-treiber prüfen
+  ansible.builtin.command: nvidia-smi -L
+  register: ollama_pc_nvidia_smi
+  changed_when: false
+  failed_when: ollama_pc_nvidia_smi.rc != 0 or 'GPU 0' not in ollama_pc_nvidia_smi.stdout
+  check_mode: false
+
+- name: paketlisten aktualisieren
+  ansible.builtin.apt:
+    update_cache: true
+    update_cache_retries: 1
+  register: ollama_pc_apt_update
+  failed_when: false
+
+- name: warnung bei fehlgeschlagener paketlisten-aktualisierung
+  ansible.builtin.debug:
+    msg: "apt update ist fehlgeschlagen (meist eine kaputte Fremdquelle in /etc/apt/sources.list.d), installiert wird aus dem vorhandenen Cache: {{ ollama_pc_apt_update.msg | default('') }}"
+  when: ollama_pc_apt_update.failed | default(false)
+
+- name: benötigte pakete installieren
+  ansible.builtin.apt:
+    name:
+      - curl
+      - ca-certificates
+      - zstd
+      - ethtool
+      - network-manager
+      - ufw
+    state: present
+
+- name: prüfen, ob ollama installiert ist
+  ansible.builtin.command: which ollama
+  register: ollama_pc_which
+  changed_when: false
+  failed_when: false
+  check_mode: false
+
+- name: dry-run ohne installiertes ollama erkennen
+  ansible.builtin.set_fact:
+    ollama_pc_dry_run_without_ollama: "{{ ansible_check_mode and ollama_pc_which.rc != 0 }}"
+
+- name: ollama-installationsskript herunterladen
+  ansible.builtin.get_url:
+    url: "{{ ollama_pc_install_script_url }}"
+    dest: /usr/local/share/ollama-install.sh
+    owner: root
+    group: root
+    mode: "0755"
+    force: true
+  when: ollama_pc_which.rc != 0
+
+- name: ollama installieren
+  ansible.builtin.command: /usr/local/share/ollama-install.sh
+  environment:
+    OLLAMA_VERSION: "{{ ollama_pc_version }}"
+  when: ollama_pc_which.rc != 0
+  changed_when: true
+
+- name: systemd-override-verzeichnis für ollama anlegen
+  ansible.builtin.file:
+    path: /etc/systemd/system/ollama.service.d
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: ollama-override mit umgebungsvariablen deployen
+  ansible.builtin.template:
+    src: ollama-override.conf.j2
+    dest: /etc/systemd/system/ollama.service.d/override.conf
+    owner: root
+    group: root
+    mode: "0644"
+  notify:
+    - ollama_pc_daemon_reload
+    - ollama_pc_restart_ollama
+
+- name: nvidia-persistenced beim boot einhängen
+  ansible.builtin.file:
+    src: /usr/lib/systemd/system/nvidia-persistenced.service
+    dest: /etc/systemd/system/multi-user.target.wants/nvidia-persistenced.service
+    state: link
+  notify: ollama_pc_daemon_reload
+
+- name: nvidia-persistenced starten
+  ansible.builtin.systemd:
+    name: nvidia-persistenced.service
+    daemon_reload: true
+    state: started
+
+- name: gpu-power-limit-unit deployen
+  ansible.builtin.template:
+    src: nvidia-power-limit.service.j2
+    dest: /etc/systemd/system/nvidia-power-limit.service
+    owner: root
+    group: root
+    mode: "0644"
+  register: ollama_pc_power_limit_unit
+  notify: ollama_pc_daemon_reload
+
+- name: handler für daemon-reload ausführen
+  ansible.builtin.meta: flush_handlers
+
+- name: nvidia-power-limit.service aktivieren und anwenden
+  ansible.builtin.systemd:
+    name: nvidia-power-limit.service
+    enabled: true
+    state: "{{ 'restarted' if ollama_pc_power_limit_unit.changed else 'started' }}"
+
+- name: networkmanager-verbindung der schnittstelle ermitteln
+  ansible.builtin.command: "nmcli -g GENERAL.CONNECTION device show {{ ollama_pc_interface }}"
+  register: ollama_pc_nm_detected
+  changed_when: false
+  when: ollama_pc_nm_connection | length == 0
+  check_mode: false
+
+- name: networkmanager-verbindung festlegen
+  ansible.builtin.set_fact:
+    ollama_pc_nm_connection_effective: "{{ ollama_pc_nm_connection if ollama_pc_nm_connection | length > 0 else ollama_pc_nm_detected.stdout | trim }}"
+
+- name: networkmanager-verbindung prüfen
+  ansible.builtin.assert:
+    that:
+      - ollama_pc_nm_connection_effective | length > 0
+    fail_msg: "Keine NetworkManager-Verbindung für {{ ollama_pc_interface }} gefunden (ollama_pc_nm_connection setzen)"
+
+- name: aktuellen wake-on-lan-wert der verbindung lesen
+  ansible.builtin.command: "nmcli -g 802-3-ethernet.wake-on-lan connection show {{ ollama_pc_nm_connection_effective | quote }}"
+  register: ollama_pc_nm_wol
+  changed_when: false
+  check_mode: false
+
+- name: wake-on-lan magic in der networkmanager-verbindung setzen
+  ansible.builtin.command: "nmcli connection modify {{ ollama_pc_nm_connection_effective | quote }} 802-3-ethernet.wake-on-lan magic"
+  when: "'magic' not in ollama_pc_nm_wol.stdout and ollama_pc_nm_wol.stdout | trim != '64'"
+  changed_when: true
+
+- name: wake-on-lan-status der schnittstelle lesen
+  ansible.builtin.command: "ethtool {{ ollama_pc_interface }}"
+  register: ollama_pc_ethtool
+  changed_when: false
+  check_mode: false
+
+- name: wake-on-lan sofort an der schnittstelle aktivieren
+  ansible.builtin.command: "ethtool -s {{ ollama_pc_interface }} wol g"
+  when: "'Wake-on: g' not in ollama_pc_ethtool.stdout"
+  changed_when: true
+
+- name: wake-on-lan-status erneut lesen
+  ansible.builtin.command: "ethtool {{ ollama_pc_interface }}"
+  register: ollama_pc_ethtool_after
+  changed_when: false
+  check_mode: false
+
+- name: wake-on-lan-status prüfen
+  ansible.builtin.assert:
+    that:
+      - "'Wake-on: g' in ollama_pc_ethtool_after.stdout"
+    fail_msg: "ethtool meldet für {{ ollama_pc_interface }} nicht 'Wake-on: g' (NIC oder Treiber unterstützt Magic Packet nicht)"
+  when: not ansible_check_mode
+
+- name: resume-hook für ollama und power-limit deployen
+  ansible.builtin.copy:
+    src: ollama-resume.sh
+    dest: /usr/lib/systemd/system-sleep/ollama-resume
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: leerlauf-skript für den suspend deployen
+  ansible.builtin.copy:
+    src: ollama-idle-suspend.sh
+    dest: /usr/local/sbin/ollama-idle-suspend
+    owner: root
+    group: root
+    mode: "0755"
+  when: ollama_pc_idle_suspend_enabled | bool
+
+- name: units für den leerlauf-suspend deployen
+  ansible.builtin.template:
+    src: "{{ item }}.j2"
+    dest: "/etc/systemd/system/{{ item }}"
+    owner: root
+    group: root
+    mode: "0644"
+  loop:
+    - ollama-idle-suspend.service
+    - ollama-idle-suspend.timer
+  when: ollama_pc_idle_suspend_enabled | bool
+  notify: ollama_pc_daemon_reload
+
+- name: handler für daemon-reload vor dem timer ausführen
+  ansible.builtin.meta: flush_handlers
+
+- name: leerlauf-timer aktivieren und starten
+  ansible.builtin.systemd:
+    name: ollama-idle-suspend.timer
+    enabled: true
+    state: started
+  when: ollama_pc_idle_suspend_enabled | bool
+  ignore_errors: "{{ ansible_check_mode }}"
+
+- name: leerlauf-timer deaktivieren, falls ollama_pc_idle_suspend_enabled false
+  ansible.builtin.systemd:
+    name: ollama-idle-suspend.timer
+    enabled: false
+    state: stopped
+  when: not (ollama_pc_idle_suspend_enabled | bool)
+  failed_when: false
+
+- name: ufw-regeln für ssh anlegen
+  community.general.ufw:
+    rule: allow
+    port: "22"
+    proto: tcp
+    from_ip: "{{ item }}"
+    comment: "SSH (Ollama-PC)"
+  loop: "{{ ollama_pc_ufw_ssh_sources }}"
+  when: ollama_pc_ufw_enabled | bool
+
+- name: ufw-regeln für die ollama-api anlegen
+  community.general.ufw:
+    rule: allow
+    port: "{{ ollama_pc_port | string }}"
+    proto: tcp
+    from_ip: "{{ item }}"
+    comment: "Ollama API (Homeserver)"
+  loop: "{{ ollama_pc_ufw_allowed_sources }}"
+  when: ollama_pc_ufw_enabled | bool
+
+- name: ufw mit standardrichtlinie deny aktivieren
+  community.general.ufw:
+    state: enabled
+    policy: deny
+    direction: incoming
+  when: ollama_pc_ufw_enabled | bool
+
+- name: ollama.service aktivieren und starten
+  ansible.builtin.systemd:
+    name: ollama.service
+    enabled: true
+    state: started
+  when: not ollama_pc_dry_run_without_ollama
+
+- name: auf die ollama-api warten
+  ansible.builtin.uri:
+    url: "http://127.0.0.1:{{ ollama_pc_port }}/api/tags"
+    status_code: 200
+  register: ollama_pc_api
+  retries: 15
+  delay: 2
+  until: ollama_pc_api.status == 200
+  when: not ollama_pc_dry_run_without_ollama
+
+- name: vorhandene modelle lesen
+  ansible.builtin.set_fact:
+    ollama_pc_present_models: "{{ ollama_pc_api.json.models | map(attribute='name') | list }}"
+  when: not ollama_pc_dry_run_without_ollama
+
+- name: fehlende modelle laden
+  ansible.builtin.command: "ollama pull {{ item }}"
+  environment:
+    OLLAMA_HOST: "127.0.0.1:{{ ollama_pc_port }}"
+  loop: "{{ ollama_pc_models }}"
+  when:
+    - not ollama_pc_dry_run_without_ollama
+    - item not in ollama_pc_present_models
+  async: "{{ ollama_pc_pull_timeout_seconds }}"
+  poll: 30
+  changed_when: true
