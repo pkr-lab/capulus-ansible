@@ -161,6 +161,16 @@
     fail_msg: "ethtool meldet für {{ ollama_pc_interface }} nicht 'Wake-on: g' (NIC oder Treiber unterstützt Magic Packet nicht)"
   when: not ansible_check_mode
 
+- name: tailscale-routenübernahme des lan-subnetzes abschalten
+  ansible.builtin.shell: |
+    if command -v tailscale >/dev/null 2>&1 && tailscale debug prefs | grep -q '"RouteAll": true'; then
+      tailscale set --accept-routes=false
+      echo changed
+    fi
+  register: ollama_pc_tailscale_routes
+  changed_when: "'changed' in ollama_pc_tailscale_routes.stdout"
+  when: not ansible_check_mode
+
 - name: resume-hook für ollama und power-limit deployen
   ansible.builtin.copy:
     src: ollama-resume.sh

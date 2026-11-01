@@ -5,7 +5,7 @@ ollama_pc_version: ""
 
 ollama_pc_listen: "0.0.0.0:11434"
 ollama_pc_port: 11434
-ollama_pc_keep_alive: 30m
+ollama_pc_keep_alive: 5m
 ollama_pc_flash_attention: 1
 ollama_pc_kv_cache_type: q8_0
 ollama_pc_context_length: 16384
@@ -26,5 +26,5 @@ ollama_pc_ufw_ssh_sources:
   - "{{ local_subnet }}"
 
 ollama_pc_idle_suspend_enabled: true
-ollama_pc_idle_suspend_minutes: 15
+ollama_pc_idle_suspend_minutes: 5
 ollama_pc_idle_suspend_max_load: "1.0"
