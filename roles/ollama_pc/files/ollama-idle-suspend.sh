@@ -17,6 +17,10 @@ busy_reason() {
     echo "ollama-modell geladen"
     return 0
   fi
+  if pgrep -f '(^|/)ollama (pull|run|create|push)( |$)' >/dev/null 2>&1; then
+    echo "ollama-kommando laeuft"
+    return 0
+  fi
   for session in $(loginctl list-sessions --no-legend 2>/dev/null | awk '{print $1}'); do
     if [ "$(loginctl show-session "$session" -p IdleHint --value 2>/dev/null)" = "no" ]; then
       echo "sitzung $session aktiv"
