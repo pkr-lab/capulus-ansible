@@ -6,7 +6,7 @@ state_file="${state_dir}/last_busy"
 idle_minutes="${IDLE_MINUTES:-15}"
 max_load="${MAX_LOAD:-1.0}"
 ollama_port="${OLLAMA_PORT:-11434}"
-suspend_command="${SUSPEND_COMMAND:-systemctl suspend}"
+poweroff_command="${POWEROFF_COMMAND:-systemctl poweroff}"
 
 now="$(date +%s)"
 mkdir -p "$state_dir"
@@ -22,8 +22,8 @@ busy_reason() {
     return 0
   fi
   for session in $(loginctl list-sessions --no-legend 2>/dev/null | awk '{print $1}'); do
-    if [ "$(loginctl show-session "$session" -p IdleHint --value 2>/dev/null)" = "no" ]; then
-      echo "sitzung $session aktiv"
+    if [ "$(loginctl show-session "$session" -p Class --value 2>/dev/null)" = "user" ]; then
+      echo "sitzung $session offen"
       return 0
     fi
   done
@@ -47,6 +47,6 @@ last="$(cat "$state_file")"
 idle_seconds=$((now - last))
 if [ "$idle_seconds" -ge $((idle_minutes * 60)) ]; then
   echo "$now" > "$state_file"
-  logger -t ollama-idle-suspend "seit $((idle_seconds / 60)) min ohne aktivitaet, suspend"
-  $suspend_command
+  logger -t ollama-idle-suspend "seit $((idle_seconds / 60)) min ohne aktivitaet und ohne sitzung, poweroff"
+  $poweroff_command
 fi
