@@ -93,6 +93,9 @@
       {% for ns in k3s_resolv_nameservers %}
       nameserver {{ ns }}
       {% endfor %}
+      {% if k3s_resolv_search | length > 0 %}
+      search {{ k3s_resolv_search | join(' ') }}
+      {% endif %}
   when: k3s_resolv_nameservers | length > 0
 
 - name: Template k3s server configuration
