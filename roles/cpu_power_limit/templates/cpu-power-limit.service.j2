@@ -1,0 +1,11 @@
+[Unit]
+Description=Set CPU power limits (RAPL PL1/PL2, turbo, EPP)
+After=multi-user.target thermald.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/local/bin/cpu-power-limit.sh
+
+[Install]
+WantedBy=multi-user.target
