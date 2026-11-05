@@ -76,8 +76,8 @@ semaphore_projects:
         cron: "0 6 * * *"
         active: true
 
-  - name: worker-0
-    description: "Deploy k3s-Agent + Watchdogs auf worker-0 (192.168.178.95)."
+  - name: controlplane-1
+    description: "Deploy k3s-Agent + Watchdogs auf controlplane-1 (192.168.178.95)."
     repository:
       name: home-server-git
       url: "{{ semaphore_ansible_repo_url }}"
@@ -85,7 +85,7 @@ semaphore_projects:
     environments:
       - "{{ semaphore_default_environment }}"
     inventories:
-      - name: worker_0_only
+      - name: controlplane_1_only
         type: static
         ssh_key: semaphore-ssh-key
         content: |
@@ -95,9 +95,9 @@ semaphore_projects:
           [k3s_primary]
           controlplane-0 ansible_host=192.168.178.94
     templates:
-      - name: "Deploy worker-0"
+      - name: "Deploy controlplane-1"
         playbook: controlplane-1.yml
-        inventory: worker_0_only
+        inventory: controlplane_1_only
         environment: default-env
         vault_key: vault-password
-        description: "apt-Update, k3s-Agent, thermal_watchdog, resource_watchdog auf worker-0."
+        description: "apt-Update, k3s-Agent, thermal_watchdog, resource_watchdog auf controlplane-1."
