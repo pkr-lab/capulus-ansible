@@ -2,6 +2,10 @@
 k3s_server_host: controlplane-0
 k3s_version: "v1.36.5+k3s1"
 resource_watchdog_action: notify
+k3s_resolv_nameservers:
+  - "{{ network_static_ip }}"
+  - 1.1.1.1
+  - 8.8.8.8
 k3s_snapshot_copy_enabled: true
 k3s_snapshot_nfs_server: 192.168.178.97
 k3s_snapshot_nfs_export: /volume1/k8s-storage/k3s-etcd-snapshots

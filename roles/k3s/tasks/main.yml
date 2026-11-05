@@ -83,6 +83,18 @@
     mode: '0750'
   when: k3s_audit_log_enabled | bool
 
+- name: Eigene resolv.conf für kubelet und CoreDNS schreiben
+  ansible.builtin.copy:
+    dest: /etc/rancher/k3s/resolv.conf
+    owner: root
+    group: root
+    mode: '0644'
+    content: |
+      {% for ns in k3s_resolv_nameservers %}
+      nameserver {{ ns }}
+      {% endfor %}
+  when: k3s_resolv_nameservers | length > 0
+
 - name: Template k3s server configuration
   ansible.builtin.template:
     src: k3s-config.yaml.j2
