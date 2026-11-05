@@ -26,7 +26,9 @@
     daemon_reload: true
     enabled: true
     state: "{{ 'restarted' if (cpu_power_limit_script.changed or cpu_power_limit_unit.changed) else 'started' }}"
-  when: cpu_power_limit_enabled | bool
+  when:
+    - cpu_power_limit_enabled | bool
+    - not (ansible_check_mode and cpu_power_limit_unit.changed)
 
 - name: cpu-power-limit.service deaktivieren, falls cpu_power_limit_enabled false
   ansible.builtin.systemd:
