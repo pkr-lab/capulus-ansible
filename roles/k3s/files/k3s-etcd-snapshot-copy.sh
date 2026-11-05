@@ -18,7 +18,7 @@ fi
 
 dest="${MOUNT_POINT}/${NODE_NAME}"
 mkdir -p "$dest"
-rsync -a --ignore-existing "${SNAPSHOT_DIR}/" "${dest}/"
+rsync -rt --ignore-existing "${SNAPSHOT_DIR}/" "${dest}/"
 find "$dest" -type f -mtime +"$KEEP_DAYS" -delete
 
 count="$(find "$dest" -type f | wc -l)"
