@@ -21,7 +21,7 @@ ollama_pc_gpu_power_limit_watts: 280
 
 ollama_pc_ufw_enabled: true
 ollama_pc_ufw_allowed_sources:
-  - "{{ hostvars['homeserver']['ansible_host'] }}"
+  - "{{ hostvars['controlplane-0']['ansible_host'] }}"
 ollama_pc_ufw_ssh_sources:
   - "{{ local_subnet }}"
 

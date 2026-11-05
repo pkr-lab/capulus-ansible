@@ -1,7 +1,7 @@
 INVENTORY   := inventory/hosts.yml
 PLAYBOOK    := site.yml
 VAULT_OPTS  ?= --ask-vault-pass
-HS2_PLAYBOOK := worker-0.yml
+CP1_PLAYBOOK := controlplane-1.yml
 HS3_PLAYBOOK := worker-1.yml
 ENTW_PLAYBOOK := entw.yml
 PROD_PLAYBOOK := prod.yml
@@ -19,16 +19,16 @@ deps: ## Install required Ansible Galaxy collections.
 
 .PHONY: ping
 ping: ## Verify Ansible can reach the server.
-	ansible -i $(INVENTORY) homeserver -m ping
+	ansible -i $(INVENTORY) k3s_primary -m ping
 
 .PHONY: check
 check: ## Dry-run the full playbook (no changes applied).
 	ansible-playbook -i $(INVENTORY) $(PLAYBOOK) --check --diff $(VAULT_OPTS)
 
 .PHONY: ssh-hardening
-ssh-hardening: ## Apply the ssh_hardening role (key-only SSH) on homeserver, workers, prod-vm, entw-vm and the kiosk Pis.
+ssh-hardening: ## Apply the ssh_hardening role (key-only SSH) on the k3s servers, worker-1, prod-vm, entw-vm and the kiosk Pis.
 	ansible-playbook -i $(INVENTORY) $(PLAYBOOK) --tags ssh-hardening $(VAULT_OPTS)
-	ansible-playbook -i $(INVENTORY) $(HS2_PLAYBOOK) --tags ssh-hardening $(VAULT_OPTS)
+	ansible-playbook -i $(INVENTORY) $(CP1_PLAYBOOK) --tags ssh-hardening $(VAULT_OPTS)
 	ansible-playbook -i $(INVENTORY) $(HS3_PLAYBOOK) --tags ssh-hardening $(VAULT_OPTS)
 	ansible-playbook -i $(INVENTORY) $(PROD_PLAYBOOK) --tags ssh-hardening $(VAULT_OPTS)
 	ansible-playbook -i $(INVENTORY) $(ENTW_PLAYBOOK) --tags ssh-hardening $(VAULT_OPTS)
@@ -39,7 +39,7 @@ ssh-hardening: ## Apply the ssh_hardening role (key-only SSH) on homeserver, wor
 install: deps ## Provision the home server end-to-end.
 	ansible-playbook -i $(INVENTORY) $(PLAYBOOK) $(VAULT_OPTS)
 
-.PHONY: common crowdsec dnsmasq tailscale k3s k3s-agent argocd semaphore semaphore-targets semaphore-bootstrap semaphore-bootstrap-local worker-0 worker-0-check worker-1 worker-1-check cluster-power-manager power-agent cups-print-server nightly-worker-wake worker-apt-update
+.PHONY: common crowdsec dnsmasq tailscale k3s k3s-agent argocd semaphore semaphore-targets semaphore-bootstrap semaphore-bootstrap-local controlplane-1 controlplane-1-check worker-1 worker-1-check cluster-power-manager power-agent cups-print-server nightly-worker-wake worker-apt-update
 common: ## Run only the `common` role (base OS, firewall, packages).
 	ansible-playbook -i $(INVENTORY) $(PLAYBOOK) --tags common $(VAULT_OPTS)
 
@@ -52,11 +52,11 @@ dnsmasq: ## Run only the `dnsmasq` role (split-DNS for *.homeserver).
 tailscale: ## Run only the `tailscale` role (VPN).
 	ansible-playbook -i $(INVENTORY) $(PLAYBOOK) --tags tailscale $(VAULT_OPTS)
 
-k3s: ## Run only the `k3s` role (Kubernetes + Helm) on homeserver.
+k3s: ## Run only the `k3s` role (Kubernetes + Helm) on controlplane-0.
 	ansible-playbook -i $(INVENTORY) $(PLAYBOOK) --tags k3s $(VAULT_OPTS)
 
-k3s-agent: ## Join worker-0 as k3s worker node (requires homeserver k3s running).
-	ansible-playbook -i $(INVENTORY) $(HS2_PLAYBOOK) --tags k3s-agent $(VAULT_OPTS)
+k3s-agent: ## Run only the k3s-agent role on controlplane-1 (requires controlplane-0 k3s running).
+	ansible-playbook -i $(INVENTORY) $(CP1_PLAYBOOK) --tags k3s-agent $(VAULT_OPTS)
 
 argocd: ## Run only the `argocd` role (GitOps controller).
 	ansible-playbook -i $(INVENTORY) $(PLAYBOOK) --tags argocd $(VAULT_OPTS)
@@ -76,11 +76,11 @@ semaphore-bootstrap-local: ## Bootstrap Semaphore natively on the home server (n
 	    --extra-vars "ansible_host=127.0.0.1 ansible_user=$$(whoami)" \
 	    --tags semaphore-bootstrap $(VAULT_OPTS)
 
-worker-0: ## Deploy k3s agent + watchdogs on worker-0 (192.168.178.95).
-	ansible-playbook -i $(INVENTORY) $(HS2_PLAYBOOK) $(VAULT_OPTS)
+controlplane-1: ## Deploy k3s node + watchdogs on controlplane-1 (192.168.178.95).
+	ansible-playbook -i $(INVENTORY) $(CP1_PLAYBOOK) $(VAULT_OPTS)
 
-worker-0-check: ## Dry-run the worker-0 playbook (no changes applied).
-	ansible-playbook -i $(INVENTORY) $(HS2_PLAYBOOK) --check --diff $(VAULT_OPTS)
+controlplane-1-check: ## Dry-run the controlplane-1 playbook (no changes applied).
+	ansible-playbook -i $(INVENTORY) $(CP1_PLAYBOOK) --check --diff $(VAULT_OPTS)
 
 worker-1: ## Deploy k3s agent + watchdogs on worker-1 (192.168.178.96).
 	ansible-playbook -i $(INVENTORY) $(HS3_PLAYBOOK) $(VAULT_OPTS)
@@ -102,7 +102,7 @@ ollama-pc-local: ## Ollama-PC-Playbook direkt auf dem Desktop-PC ausfuehren (ohn
 	ansible-playbook -i $(INVENTORY) $(OLLAMA_PC_PLAYBOOK) --limit ollama-pc --connection local --ask-become-pass $(VAULT_OPTS)
 
 .PHONY: prod prod-check
-prod: ## Deploy PROD-Cluster (k3s) in der KVM-VM auf homeserver (192.168.178.99, pkr-lab-docs/capulus-core/4-planung/40080 Phase 2.5). VM muss laufen (make libvirt-host).
+prod: ## Deploy PROD-Cluster (k3s) in der KVM-VM auf controlplane-0 (192.168.178.99, pkr-lab-docs/capulus-core/4-planung/40080 Phase 2.5). VM muss laufen (make libvirt-host).
 	ansible-playbook -i $(INVENTORY) $(PROD_PLAYBOOK) $(VAULT_OPTS)
 
 prod-check: ## Dry-run des PROD-Playbooks.
@@ -115,13 +115,13 @@ entw: ## Deploy ENTW-Cluster (k3s + ArgoCD) in der KVM-VM auf worker-1 (192.168.
 entw-check: ## Dry-run des ENTW-Playbooks.
 	ansible-playbook -i $(INVENTORY) $(ENTW_PLAYBOOK) --check --diff $(VAULT_OPTS)
 
-cluster-power-manager: ## Re-deploy only the cluster_power_manager role on homeserver (WoL scale-up/down).
+cluster-power-manager: ## Re-deploy only the cluster_power_manager role on controlplane-0 (WoL scale-up/down).
 	ansible-playbook -i $(INVENTORY) $(PLAYBOOK) --tags cluster-power-manager $(VAULT_OPTS)
 
-power-agent: ## Re-deploy only the power_agent role on homeserver (brightness + manual WoL/poweroff HTTP API).
+power-agent: ## Re-deploy only the power_agent role on controlplane-0 (brightness + manual WoL/poweroff HTTP API).
 	ansible-playbook -i $(INVENTORY) $(PLAYBOOK) --tags power-agent $(VAULT_OPTS)
 
-cups-print-server: ## Re-deploy only the cups_print_server role on homeserver (USB-Drucker per IPP/AirPrint).
+cups-print-server: ## Re-deploy only the cups_print_server role on controlplane-0 (USB-Drucker per IPP/AirPrint).
 	ansible-playbook -i $(INVENTORY) $(PLAYBOOK) --tags cups-print-server $(VAULT_OPTS)
 
 .PHONY: libvirt-host
@@ -137,14 +137,14 @@ worker-1-libvirt-host: ## Re-deploy only the libvirt_host role auf worker-1 (ENT
 	ansible-playbook -i $(INVENTORY) $(HS3_PLAYBOOK) --tags libvirt-host $(VAULT_OPTS)
 
 .PHONY: worker-1-libvirt-bridge
-worker-1-libvirt-bridge: ## NUR das Bridge-Netzwerk auf worker-1 (weniger kritisch als homeserver, aber trotzdem bewusster Schritt).
+worker-1-libvirt-bridge: ## NUR das Bridge-Netzwerk auf worker-1 (weniger kritisch als controlplane-0, aber trotzdem bewusster Schritt).
 	ansible-playbook -i $(INVENTORY) $(HS3_PLAYBOOK) --tags libvirt-bridge $(VAULT_OPTS)
 
-nightly-worker-wake: ## Re-deploy only the nightly_worker_wake role on homeserver (01:00 Uhr WoL+Update+Poweroff-Zyklus).
+nightly-worker-wake: ## Re-deploy only the nightly_worker_wake role on controlplane-0 (01:00 Uhr WoL+Update+Poweroff-Zyklus).
 	ansible-playbook -i $(INVENTORY) $(PLAYBOOK) --tags nightly-worker-wake $(VAULT_OPTS)
 
-worker-apt-update: ## Manuelles apt-Update auf worker-0 + worker-1 (läuft normalerweise nachts automatisch über nightly-worker-wake).
-	ansible-playbook -i $(INVENTORY) $(HS2_PLAYBOOK) --tags apt-update $(VAULT_OPTS)
+worker-apt-update: ## Manuelles apt-Update auf controlplane-1 + worker-1 (läuft normalerweise nachts automatisch über nightly-worker-wake).
+	ansible-playbook -i $(INVENTORY) $(CP1_PLAYBOOK) --tags apt-update $(VAULT_OPTS)
 	ansible-playbook -i $(INVENTORY) $(HS3_PLAYBOOK) --tags apt-update $(VAULT_OPTS)
 
 .PHONY: alarm-kiosks alarm-kiosks-check

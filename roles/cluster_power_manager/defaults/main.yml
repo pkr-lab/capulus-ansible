@@ -29,8 +29,8 @@ cluster_power_manager_ntfy_topic: "Home-Lab-System"
 
 cluster_power_manager_workers:
   - name: worker-0
-    ansible_host: "{{ hostvars.get('worker-0', {}).ansible_host | default('') }}"
-    mac_address: "{{ hostvars.get('worker-0', {}).wake_on_lan_mac_address | default('') }}"
+    ansible_host: "{{ hostvars.get('controlplane-1', {}).ansible_host | default('') }}"
+    mac_address: "{{ hostvars.get('controlplane-1', {}).wake_on_lan_mac_address | default('') }}"
   - name: worker-1
     ansible_host: "{{ hostvars.get('worker-1', {}).ansible_host | default('') }}"
     mac_address: "{{ hostvars.get('worker-1', {}).wake_on_lan_mac_address | default('') }}"

@@ -3,7 +3,7 @@
 - name: Fetch Semaphore public key from the home-server
   ansible.builtin.slurp:
     src: "{{ semaphore_public_key_path }}"
-  delegate_to: "{{ groups['homeservers'][0] }}"
+  delegate_to: "{{ groups['k3s_primary'][0] }}"
   become: true
   register: semaphore_target_pubkey
 

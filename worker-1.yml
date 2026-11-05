@@ -32,7 +32,7 @@
       tags: [libvirt-host, virtualization]
 
 - name: Uncordon worker-1 nach Provisioning
-  hosts: homeservers
+  hosts: k3s_primary
   become: true
   tags: [uncordon, kubernetes]
   tasks:
