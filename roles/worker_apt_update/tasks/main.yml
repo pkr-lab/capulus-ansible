@@ -34,6 +34,13 @@
   register: worker_apt_update_reboot_flag
   when: worker_apt_update_enabled | bool
 
+- name: Neustart bei k3s-Servern nur nach etcd-Prüfung freigeben
+  ansible.builtin.import_role:
+    name: k3s_reboot_guard
+  when:
+    - worker_apt_update_enabled | bool
+    - worker_apt_update_reboot_flag.stat.exists
+
 - name: Reboot-erforderlich -- Node vor dem Neustart cordon/drain (auf dem primären Server)
   delegate_to: "{{ groups['k3s_primary'][0] }}"
   environment:
@@ -41,6 +48,7 @@
   when:
     - worker_apt_update_enabled | bool
     - worker_apt_update_reboot_flag.stat.exists
+    - k3s_reboot_guard_ok | default(true) | bool
   block:
     - name: kubectl cordon {{ worker_apt_update_k3s_node_name }}
       ansible.builtin.command:
@@ -63,6 +71,40 @@
   when:
     - worker_apt_update_enabled | bool
     - worker_apt_update_reboot_flag.stat.exists
+    - k3s_reboot_guard_ok | default(true) | bool
+
+- name: k3s-Server nach dem Neustart wieder Ready und schedulable machen
+  when:
+    - worker_apt_update_enabled | bool
+    - worker_apt_update_reboot_flag.stat.exists
+    - k3s_reboot_guard_ok | default(true) | bool
+    - inventory_hostname in groups['k3s_servers'] | default([])
+  delegate_to: "{{ groups['k3s_servers'] | difference([inventory_hostname]) | first }}"
+  environment:
+    KUBECONFIG: "{{ worker_apt_update_kubeconfig }}"
+  block:
+    - name: Prüfen ob der Node {{ worker_apt_update_k3s_node_name }} schon im Cluster registriert ist
+      ansible.builtin.command: kubectl get node {{ worker_apt_update_k3s_node_name }} --no-headers
+      register: worker_apt_update_server_node
+      changed_when: false
+      failed_when: false
+      check_mode: false
+
+    - name: Node {{ worker_apt_update_k3s_node_name }} auf Ready warten
+      ansible.builtin.command: >-
+        kubectl get node {{ worker_apt_update_k3s_node_name }}
+        -o jsonpath='{.status.conditions[?(@.type=="Ready")].status}'
+      register: worker_apt_update_server_ready
+      retries: 30
+      delay: 10
+      until: worker_apt_update_server_ready.stdout == 'True'
+      changed_when: false
+      when: worker_apt_update_server_node.rc == 0
+
+    - name: kubectl uncordon {{ worker_apt_update_k3s_node_name }}
+      ansible.builtin.command: kubectl uncordon {{ worker_apt_update_k3s_node_name }}
+      changed_when: true
+      when: worker_apt_update_server_node.rc == 0
 
 - name: Reboot-erforderlich -- Abschluss melden (für den nightly_worker_wake-Bericht)
   ansible.builtin.debug:
@@ -72,3 +114,4 @@
   when:
     - worker_apt_update_enabled | bool
     - worker_apt_update_reboot_flag.stat.exists
+    - k3s_reboot_guard_ok | default(true) | bool

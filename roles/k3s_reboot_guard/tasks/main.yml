@@ -1,0 +1,69 @@
+---
+
+- name: Reboot-Freigabe für Hosts ohne etcd erteilen
+  ansible.builtin.set_fact:
+    k3s_reboot_guard_ok: true
+  when: inventory_hostname not in groups['k3s_servers'] | default([])
+
+- name: Reboot-Freigabe für k3s-Server prüfen
+  when: inventory_hostname in groups['k3s_servers'] | default([])
+  block:
+    - name: Peer-Server bestimmen
+      ansible.builtin.set_fact:
+        k3s_reboot_guard_peers: "{{ groups['k3s_servers'] | difference([inventory_hostname]) }}"
+
+    - name: Prüfen dass es mindestens einen Peer-Server gibt
+      ansible.builtin.assert:
+        that:
+          - k3s_reboot_guard_peers | length > 0
+        fail_msg: Kein anderer k3s-Server im Inventar, Neustart nicht freigegeben.
+
+    - name: Peer-Node auf Ready prüfen
+      ansible.builtin.command: >-
+        kubectl get node {{ hostvars[item]['k3s_node_name'] | default(item) }}
+        -o jsonpath='{.status.conditions[?(@.type=="Ready")].status}'
+      delegate_to: "{{ item }}"
+      environment:
+        KUBECONFIG: "{{ k3s_reboot_guard_kubeconfig }}"
+      register: k3s_reboot_guard_ready
+      changed_when: false
+      check_mode: false
+      failed_when: k3s_reboot_guard_ready.stdout != 'True'
+      loop: "{{ k3s_reboot_guard_peers }}"
+
+    - name: etcd-Gesundheit über die API des Peers prüfen
+      ansible.builtin.command: kubectl get --raw=/readyz/etcd
+      delegate_to: "{{ item }}"
+      environment:
+        KUBECONFIG: "{{ k3s_reboot_guard_kubeconfig }}"
+      register: k3s_reboot_guard_etcd
+      changed_when: false
+      check_mode: false
+      failed_when: k3s_reboot_guard_etcd.stdout != 'ok'
+      loop: "{{ k3s_reboot_guard_peers }}"
+
+    - name: Laufzeit des Peers lesen
+      ansible.builtin.command: cat /proc/uptime
+      delegate_to: "{{ item }}"
+      register: k3s_reboot_guard_uptime
+      changed_when: false
+      check_mode: false
+      failed_when: (k3s_reboot_guard_uptime.stdout.split()[0] | float) < k3s_reboot_guard_peer_min_uptime_seconds
+      loop: "{{ k3s_reboot_guard_peers }}"
+
+    - name: Neustart freigeben
+      ansible.builtin.set_fact:
+        k3s_reboot_guard_ok: true
+
+  rescue:
+    - name: Neustart sperren
+      ansible.builtin.set_fact:
+        k3s_reboot_guard_ok: false
+
+    - name: Warnung zur gesperrten Freigabe ausgeben
+      ansible.builtin.debug:
+        msg: >-
+          WARNUNG: Neustart von {{ inventory_hostname }} nicht freigegeben. Der andere k3s-Server ist nicht
+          Ready, etcd meldet keinen guten Zustand oder der Peer ist erst seit weniger als
+          {{ k3s_reboot_guard_peer_min_uptime_seconds }} Sekunden online. Ein Neustart würde bei zwei
+          etcd-Mitgliedern die API nehmen.

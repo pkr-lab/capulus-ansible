@@ -1,0 +1,23 @@
+---
+
+- name: k3s-api (6443) aus den freigegebenen quellen erlauben
+  community.general.ufw:
+    rule: allow
+    port: "6443"
+    proto: tcp
+    src: "{{ item }}"
+    comment: "k3s API ({{ item }})"
+  loop: "{{ k3s_ufw_api_sources }}"
+
+- name: etcd-peer- und client-ports (2379-2380) nur von den anderen servern erlauben
+  community.general.ufw:
+    rule: allow
+    port: "2379:2380"
+    proto: tcp
+    src: "{{ item }}"
+    comment: "etcd peer ({{ item }})"
+  loop: >-
+    {{
+      (groups['k3s_servers'] | difference([inventory_hostname]) | map('extract', hostvars, 'ansible_host') | list)
+      + k3s_ufw_etcd_extra_peers
+    }}

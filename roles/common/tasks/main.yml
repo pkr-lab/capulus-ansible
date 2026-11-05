@@ -369,6 +369,13 @@
     path: /var/run/reboot-required
   register: common_reboot_required
 
+- name: Reboot bei k3s-Servern nur nach etcd-Prüfung freigeben
+  ansible.builtin.import_role:
+    name: k3s_reboot_guard
+  when:
+    - common_reboot_required.stat.exists
+    - auto_reboot_if_required | bool
+
 - name: Reboot the server because /var/run/reboot-required is set
   ansible.builtin.reboot:
     msg: "Reboot triggered by Ansible: kernel/libc update applied"
@@ -380,6 +387,7 @@
   when:
     - common_reboot_required.stat.exists
     - auto_reboot_if_required | bool
+    - k3s_reboot_guard_ok | default(true) | bool
     - lookup('env', 'SEMAPHORE_TASK_ID') | length == 0
 
 - name: Reboot required but auto_reboot_if_required is false — warn the operator
