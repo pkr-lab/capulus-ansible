@@ -2,12 +2,15 @@
 Description=Copy k3s etcd snapshots to the NAS
 After=network-online.target
 Wants=network-online.target
-RequiresMountsFor={{ k3s_snapshot_mount_point }}
 
 [Service]
 Type=oneshot
+TimeoutStartSec=900
 Environment=SNAPSHOT_DIR={{ k3s_snapshot_dir }}
 Environment=MOUNT_POINT={{ k3s_snapshot_mount_point }}
 Environment=KEEP_DAYS={{ k3s_snapshot_copy_keep_days }}
 Environment=NODE_NAME={{ k3s_node_name }}
+Environment=NTFY_HOST={{ k3s_ntfy_host }}
+Environment=NTFY_IP={{ k3s_ntfy_ip }}
+Environment=NTFY_TOPIC={{ k3s_ntfy_topic }}
 ExecStart=/usr/local/bin/k3s-etcd-snapshot-copy.sh
