@@ -24,7 +24,6 @@
 
     - name: prüfen dass das drop-in die werte aus anderen dateien übersteuert
       ansible.builtin.assert:
-        when: not ansible_check_mode
         that:
           - "'passwordauthentication no' in ssh_hardening_effective.stdout"
           - "'permitrootlogin no' in ssh_hardening_effective.stdout"
@@ -32,6 +31,7 @@
         fail_msg: >-
           Das Drop-in {{ ssh_hardening_dropin }} wird von einer früher geladenen
           Datei übersteuert. Der Dateiname muss alphabetisch vor 50-cloud-init.conf liegen.
+      when: not ansible_check_mode
 
     - name: sshd-handler ausführen
       ansible.builtin.meta: flush_handlers
