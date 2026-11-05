@@ -25,6 +25,9 @@ k3s_snapshot_nfs_export: ""
 k3s_snapshot_mount_point: /mnt/k3s-etcd-snapshots
 k3s_snapshot_copy_calendar: "*-*-* 00,06,12,18:20:00"
 k3s_snapshot_copy_keep_days: 14
+k3s_ntfy_host: ntfy.tech.homeserver
+k3s_ntfy_ip: "{{ network_static_ip }}"
+k3s_ntfy_topic: Home-Lab-System
 
 k3s_ufw_enable: true
 k3s_ufw_api_sources:
