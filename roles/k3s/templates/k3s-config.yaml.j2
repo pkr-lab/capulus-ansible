@@ -45,7 +45,7 @@ node-name: "{{ k3s_node_name }}"
 # Ubuntu systemd-resolved stellt /etc/resolv.conf auf 127.0.0.53 (Stub),
 # der aus dem Pod-Netz nicht erreichbar ist. CoreDNS bekommt damit keine
 # Upstream-DNS-Server und kann externe Namen (github.com etc.) nicht auflösen.
-resolv-conf: /run/systemd/resolve/resolv.conf
+resolv-conf: {{ k3s_resolv_conf_path }}
 {% if k3s_secrets_encryption_enabled | bool %}
 # Security-Härtung Phase 4 (docs/d-sicherheit/d0010-security-hardening-roadmap.md, docs/d-sicherheit/d0050-secrets-encryption-audit-log.md).
 # Verschlüsselt Secrets im k3s-Datastore (state.db) selbst — Sealed Secrets
