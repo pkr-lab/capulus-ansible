@@ -1,6 +1,10 @@
 ---
 resource_watchdog_enabled: true
 
+resource_watchdog_action: poweroff
+
+resource_watchdog_alert_repeat_seconds: 3600
+
 resource_watchdog_poll_seconds: 10
 
 resource_watchdog_cpu_threshold: 90
