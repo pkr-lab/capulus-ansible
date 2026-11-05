@@ -3,6 +3,8 @@ ansible_become_password: "{{ vault_worker_0_become_password }}"
 hostname: worker-0
 k3s_agent_hostname: worker-0
 
+cluster_power_manager_target_enabled: false
+
 wake_on_lan_mac_address: "98:fa:9b:28:b0:22"
 
 k3s_agent_ufw_enable: true

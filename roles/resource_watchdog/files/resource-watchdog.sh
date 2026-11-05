@@ -16,11 +16,14 @@ if [ -r "$NTFY_AUTH_HEADER_FILE" ]; then
 fi
 WARN_THRESHOLD="${WARN_THRESHOLD:-}"
 WARN_SUSTAIN_SECONDS="${WARN_SUSTAIN_SECONDS:-60}"
+ACTION="${ACTION:-poweroff}"
+ALERT_REPEAT_SECONDS="${ALERT_REPEAT_SECONDS:-3600}"
 DRY_RUN="${DRY_RUN:-0}"
 
 over_since=0
 warn_over_since=0
 warn_sent=0
+next_alert_at=0
 
 cpu_percent() {
   local _ u1 n1 s1 i1 iw1 irq1 sirq1 st1 u2 n2 s2 i2 iw2 irq2 sirq2 st2
@@ -69,9 +72,27 @@ notify_shutdown() {
     "https://${NTFY_HOST}/${NTFY_TOPIC}" || logger -t "resource-watchdog-${METRIC}" "ntfy-Meldung fehlgeschlagen"
 }
 
+notify_overload() {
+  local title="Dauerhaft hohe ${METRIC^^}-Auslastung"
+  local body="$(hostname): ${METRIC} >= ${THRESHOLD}% fuer ${SUSTAIN_SECONDS}s. Der Host bleibt in Betrieb (Control-Plane)."
+  curl --fail --silent --show-error --max-time 5 \
+    --resolve "${NTFY_HOST}:443:${NTFY_IP}" \
+    --cacert "$NTFY_CA_FILE" \
+    "${ntfy_auth_args[@]}" \
+    -H "Title: ${title}" \
+    -H "Priority: 5" \
+    -H "Tags: rotating_light,warning" \
+    -d "$body" \
+    "https://${NTFY_HOST}/${NTFY_TOPIC}" || logger -t "resource-watchdog-${METRIC}" "ntfy-Meldung fehlgeschlagen"
+}
+
 notify_warning() {
   local title="Warnung: hohe ${METRIC^^}-Auslastung"
-  local body="$(hostname): ${METRIC} >= ${WARN_THRESHOLD}% seit ${WARN_SUSTAIN_SECONDS}s. Bei Anstieg auf ${THRESHOLD}% fuer ${SUSTAIN_SECONDS}s schaltet sich der Host automatisch ab."
+  local consequence="schaltet sich der Host automatisch ab"
+  if [ "$ACTION" = "notify" ]; then
+    consequence="folgt ein Alarm (der Host bleibt in Betrieb)"
+  fi
+  local body="$(hostname): ${METRIC} >= ${WARN_THRESHOLD}% seit ${WARN_SUSTAIN_SECONDS}s. Bei Anstieg auf ${THRESHOLD}% fuer ${SUSTAIN_SECONDS}s ${consequence}."
   curl --fail --silent --show-error --max-time 5 \
     --resolve "${NTFY_HOST}:443:${NTFY_IP}" \
     --cacert "$NTFY_CA_FILE" \
@@ -93,14 +114,22 @@ while true; do
     if [ "$over_since" -eq 0 ]; then
       over_since="$now"
     elif (( now - over_since >= SUSTAIN_SECONDS )); then
-      logger -t "resource-watchdog-${METRIC}" "${value}% >= ${THRESHOLD}% for $(( now - over_since ))s -- shutting down"
-      notify_shutdown
-      if [ "$DRY_RUN" = "1" ]; then
-        logger -t "resource-watchdog-${METRIC}" "DRY_RUN=1 -- skipping systemctl poweroff"
+      if [ "$ACTION" = "notify" ]; then
+        if (( now >= next_alert_at )); then
+          logger -t "resource-watchdog-${METRIC}" "${value}% >= ${THRESHOLD}% for $(( now - over_since ))s -- alert only"
+          notify_overload
+          next_alert_at=$(( now + ALERT_REPEAT_SECONDS ))
+        fi
       else
-        systemctl poweroff
+        logger -t "resource-watchdog-${METRIC}" "${value}% >= ${THRESHOLD}% for $(( now - over_since ))s -- shutting down"
+        notify_shutdown
+        if [ "$DRY_RUN" = "1" ]; then
+          logger -t "resource-watchdog-${METRIC}" "DRY_RUN=1 -- skipping systemctl poweroff"
+        else
+          systemctl poweroff
+        fi
+        exit 0
       fi
-      exit 0
     fi
   else
     over_since=0
