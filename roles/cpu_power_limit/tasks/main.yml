@@ -1,0 +1,37 @@
+---
+
+- name: CPU-Power-Limit-Skript deployen
+  ansible.builtin.template:
+    src: cpu-power-limit.sh.j2
+    dest: /usr/local/bin/cpu-power-limit.sh
+    owner: root
+    group: root
+    mode: "0755"
+  when: cpu_power_limit_enabled | bool
+  register: cpu_power_limit_script
+
+- name: systemd-Unit für die CPU-Power-Limits deployen
+  ansible.builtin.template:
+    src: cpu-power-limit.service.j2
+    dest: /etc/systemd/system/cpu-power-limit.service
+    owner: root
+    group: root
+    mode: "0644"
+  when: cpu_power_limit_enabled | bool
+  register: cpu_power_limit_unit
+
+- name: cpu-power-limit.service aktivieren und (neu) starten
+  ansible.builtin.systemd:
+    name: cpu-power-limit.service
+    daemon_reload: true
+    enabled: true
+    state: "{{ 'restarted' if (cpu_power_limit_script.changed or cpu_power_limit_unit.changed) else 'started' }}"
+  when: cpu_power_limit_enabled | bool
+
+- name: cpu-power-limit.service deaktivieren, falls cpu_power_limit_enabled false
+  ansible.builtin.systemd:
+    name: cpu-power-limit.service
+    enabled: false
+    state: stopped
+  when: not (cpu_power_limit_enabled | bool)
+  failed_when: false

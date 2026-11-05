@@ -1,0 +1,9 @@
+---
+cpu_power_limit_enabled: true
+
+cpu_power_limit_pl1_watts: 15
+cpu_power_limit_pl2_watts: 25
+
+cpu_power_limit_no_turbo: false
+
+cpu_power_limit_epp: balance_power

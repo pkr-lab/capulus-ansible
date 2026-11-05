@@ -1,0 +1,18 @@
+#!/bin/sh
+set -eu
+
+rapl=/sys/class/powercap/intel-rapl:0
+
+for c in "$rapl"/constraint_*_name; do
+  n="${c%_name}"
+  case "$(cat "$c")" in
+    long_term) echo $(( {{ cpu_power_limit_pl1_watts }} * 1000000 )) > "${n}_power_limit_uw" ;;
+    short_term) echo $(( {{ cpu_power_limit_pl2_watts }} * 1000000 )) > "${n}_power_limit_uw" ;;
+  esac
+done
+
+echo {{ 1 if cpu_power_limit_no_turbo | bool else 0 }} > /sys/devices/system/cpu/intel_pstate/no_turbo
+
+for f in /sys/devices/system/cpu/cpu*/cpufreq/energy_performance_preference; do
+  echo {{ cpu_power_limit_epp }} > "$f"
+done
