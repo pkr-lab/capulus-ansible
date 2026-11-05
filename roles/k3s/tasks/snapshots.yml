@@ -49,3 +49,4 @@
     enabled: true
     state: started
     daemon_reload: true
+  when: not ansible_check_mode
