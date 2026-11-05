@@ -34,8 +34,8 @@
   register: worker_apt_update_reboot_flag
   when: worker_apt_update_enabled | bool
 
-- name: Reboot-erforderlich -- Node vor dem Neustart cordon/drain (auf homeserver)
-  delegate_to: homeserver
+- name: Reboot-erforderlich -- Node vor dem Neustart cordon/drain (auf dem primären Server)
+  delegate_to: "{{ groups['k3s_primary'][0] }}"
   environment:
     KUBECONFIG: "{{ worker_apt_update_kubeconfig }}"
   when:

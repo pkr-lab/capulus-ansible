@@ -1,6 +1,6 @@
 ---
 - name: Vaultwarden aus NAS-Backup-PVC wiederherstellen
-  hosts: homeservers
+  hosts: k3s_primary
   become: true
   gather_facts: false
   vars:
