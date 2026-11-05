@@ -8,6 +8,7 @@ k3s_helm_release: "v3.22.1"
 k3s_helm_arch: "{{ 'arm64' if ansible_architecture == 'aarch64' else 'amd64' }}"
 
 k3s_resolv_nameservers: []
+k3s_resolv_search: []
 k3s_resolv_conf_path: "{{ '/etc/rancher/k3s/resolv.conf' if k3s_resolv_nameservers | length > 0 else '/run/systemd/resolve/resolv.conf' }}"
 k3s_node_taints: []
 k3s_tls_san_extra: []
