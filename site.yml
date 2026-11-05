@@ -29,6 +29,8 @@
       tags: [wireguard, vpn, backup]
     - role: disable_eee
       tags: [disable-eee, network]
+    - role: cpu_power_limit
+      tags: [cpu-power-limit, power-management]
     - role: k3s
       tags: [k3s, kubernetes]
     - role: argocd
