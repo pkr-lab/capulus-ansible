@@ -1,7 +1,7 @@
 ---
 worker_apt_update_enabled: true
 
-worker_apt_update_k3s_node_name: "{{ k3s_agent_hostname }}"
+worker_apt_update_k3s_node_name: "{{ k3s_node_name | default(k3s_agent_hostname) }}"
 
 worker_apt_update_kubeconfig: /etc/rancher/k3s/k3s.yaml
 

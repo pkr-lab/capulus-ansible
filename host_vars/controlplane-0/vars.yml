@@ -1,6 +1,7 @@
 ---
 
 k3s_node_name: homeserver
+k3s_mode: init
 
 libvirt_host_bridge_interface: "{{ network_interface }}"
 libvirt_host_static_ip: "{{ network_static_ip }}"

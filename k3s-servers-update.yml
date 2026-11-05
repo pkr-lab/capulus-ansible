@@ -1,0 +1,10 @@
+---
+
+- name: apt-Updates und Neustarts der k3s-Server nacheinander
+  hosts: k3s_servers
+  serial: 1
+  any_errors_fatal: true
+  become: true
+  roles:
+    - role: worker_apt_update
+      tags: [apt-update, updates]

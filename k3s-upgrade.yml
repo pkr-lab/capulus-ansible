@@ -1,0 +1,40 @@
+---
+
+- name: Einheitliche k3s-Version auf allen Servern prüfen
+  hosts: k3s_servers
+  gather_facts: false
+  tasks:
+    - name: Prüfen dass alle Server dieselbe k3s_version haben
+      ansible.builtin.assert:
+        that:
+          - k3s_version | length > 0
+          - groups['k3s_servers'] | map('extract', hostvars, 'k3s_version') | unique | length == 1
+        fail_msg: Die k3s_version ist nicht gesetzt oder auf den Servern unterschiedlich.
+      run_once: true
+
+- name: k3s auf den Servern nacheinander aktualisieren
+  hosts: k3s_servers
+  serial: 1
+  any_errors_fatal: true
+  become: true
+  pre_tasks:
+    - name: Freigabe über etcd und Peer-Server einholen
+      ansible.builtin.import_role:
+        name: k3s_reboot_guard
+
+    - name: Abbrechen wenn der Peer-Server nicht gesund ist
+      ansible.builtin.assert:
+        that:
+          - k3s_reboot_guard_ok | bool
+        fail_msg: Der andere k3s-Server ist nicht gesund, das Upgrade würde bei zwei etcd-Mitgliedern die API nehmen.
+  roles:
+    - role: k3s
+      tags: [k3s, kubernetes]
+
+- name: k3s auf den Agents nacheinander aktualisieren
+  hosts: k3s_agents
+  serial: 1
+  become: true
+  roles:
+    - role: k3s_agent
+      tags: [k3s-agent, kubernetes]

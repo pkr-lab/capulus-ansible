@@ -1,0 +1,93 @@
+---
+
+- name: Allow kubelet API (port 10250) from k3s server
+  community.general.ufw:
+    rule: allow
+    port: "10250"
+    proto: tcp
+    src: "{{ hostvars[k3s_server_host]['ansible_host'] }}"
+    comment: "k3s kubelet API from control-plane"
+
+- name: flannel-vxlan (udp 8472) nur aus dem lan erlauben
+  community.general.ufw:
+    rule: allow
+    port: "8472"
+    proto: udp
+    src: "{{ local_subnet }}"
+    comment: "Flannel VXLAN pod overlay network"
+
+- name: offene regeln für flannel-vxlan und die api (6443) auf dem agent entfernen
+  community.general.ufw:
+    rule: allow
+    port: "{{ item.port }}"
+    proto: "{{ item.proto }}"
+    delete: true
+  loop:
+    - {port: "8472", proto: udp}
+    - {port: "6443", proto: tcp}
+
+- name: Allow all traffic from k3s pod CIDR
+  community.general.ufw:
+    rule: allow
+    src: "{{ k3s_pod_cidr }}"
+    comment: "k3s pod CIDR traffic"
+
+- name: Allow all traffic from k3s service CIDR
+  community.general.ufw:
+    rule: allow
+    src: "{{ k3s_service_cidr }}"
+    comment: "k3s service CIDR traffic"
+
+- name: infrastruktur-hosts vollständig erlauben
+  community.general.ufw:
+    rule: allow
+    src: "{{ item }}"
+    comment: "Infrastruktur-Host (Vollzugriff)"
+  loop: "{{ k3s_agent_ufw_trusted_hosts }}"
+  when: k3s_agent_ufw_enable | bool
+
+- name: veraltete offene regeln entfernen
+  community.general.ufw:
+    rule: allow
+    port: "{{ item.port | default(omit) }}"
+    proto: "{{ item.proto | default(omit) }}"
+    src: "{{ item.src | default(omit) }}"
+    delete: true
+  loop:
+    - {port: "22", proto: tcp}
+    - {src: "{{ local_subnet }}"}
+    - {port: "10250", proto: tcp, src: "{{ local_subnet }}"}
+  when: k3s_agent_ufw_enable | bool
+
+- name: ssh aus dem lan erlauben
+  community.general.ufw:
+    rule: allow
+    port: "22"
+    proto: tcp
+    src: "{{ local_subnet }}"
+    comment: "SSH (LAN)"
+  when: k3s_agent_ufw_enable | bool
+
+- name: tailscale-wireguard erlauben
+  community.general.ufw:
+    rule: allow
+    port: "41641"
+    proto: udp
+    comment: "Tailscale WireGuard VPN"
+  when: k3s_agent_ufw_enable | bool
+
+- name: bridge für virtuelle maschinen weiterleiten
+  community.general.ufw:
+    rule: allow
+    route: true
+    interface_in: "{{ k3s_agent_ufw_vm_bridge }}"
+    interface_out: "{{ k3s_agent_ufw_vm_bridge }}"
+    comment: "libvirt bridge LAN <-> VM"
+  when: k3s_agent_ufw_enable | bool and k3s_agent_ufw_vm_bridge | length > 0
+
+- name: ufw aktivieren
+  community.general.ufw:
+    state: enabled
+    default: deny
+    direction: incoming
+  when: k3s_agent_ufw_enable | bool

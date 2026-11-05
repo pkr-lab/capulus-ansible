@@ -55,8 +55,8 @@ tailscale: ## Run only the `tailscale` role (VPN).
 k3s: ## Run only the `k3s` role (Kubernetes + Helm) on controlplane-0.
 	ansible-playbook -i $(INVENTORY) $(PLAYBOOK) --tags k3s $(VAULT_OPTS)
 
-k3s-agent: ## Run only the k3s-agent role on controlplane-1 (requires controlplane-0 k3s running).
-	ansible-playbook -i $(INVENTORY) $(CP1_PLAYBOOK) --tags k3s-agent $(VAULT_OPTS)
+k3s-agent: ## Run only the k3s-agent role on worker-1 (requires controlplane-0 k3s running).
+	ansible-playbook -i $(INVENTORY) $(HS3_PLAYBOOK) --tags k3s-agent $(VAULT_OPTS)
 
 argocd: ## Run only the `argocd` role (GitOps controller).
 	ansible-playbook -i $(INVENTORY) $(PLAYBOOK) --tags argocd $(VAULT_OPTS)
@@ -87,6 +87,19 @@ worker-1: ## Deploy k3s agent + watchdogs on worker-1 (192.168.178.96).
 
 worker-1-check: ## Dry-run the worker-1 playbook (no changes applied).
 	ansible-playbook -i $(INVENTORY) $(HS3_PLAYBOOK) --check --diff $(VAULT_OPTS)
+
+.PHONY: k3s-servers-update k3s-servers-update-check k3s-upgrade k3s-upgrade-check
+k3s-servers-update: ## apt-Update und Neustart der k3s-Server nacheinander (nur mit gesundem etcd-Peer, von der Workstation).
+	ansible-playbook -i $(INVENTORY) k3s-servers-update.yml $(VAULT_OPTS)
+
+k3s-servers-update-check: ## Dry-run des Server-Updates (keine Änderungen).
+	ansible-playbook -i $(INVENTORY) k3s-servers-update.yml --check --diff $(VAULT_OPTS)
+
+k3s-upgrade: ## k3s auf die Version aus k3s_version heben: erst die Server nacheinander, dann die Agents.
+	ansible-playbook -i $(INVENTORY) k3s-upgrade.yml $(VAULT_OPTS)
+
+k3s-upgrade-check: ## Dry-run des k3s-Upgrades (keine Änderungen).
+	ansible-playbook -i $(INVENTORY) k3s-upgrade.yml --check --diff $(VAULT_OPTS)
 
 .PHONY: ollama-pc ollama-pc-check ollama-pc-local ollama-pc-local-check
 ollama-pc: ## Ollama auf dem Desktop-PC einrichten (per SSH, fragt sudo-Passwort ab).

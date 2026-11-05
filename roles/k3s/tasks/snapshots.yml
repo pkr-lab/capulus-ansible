@@ -1,0 +1,51 @@
+---
+
+- name: nfs-common und rsync installieren
+  ansible.builtin.apt:
+    name:
+      - nfs-common
+      - rsync
+    state: present
+    update_cache: true
+
+- name: Mount-Punkt für die etcd-Snapshots anlegen
+  ansible.builtin.file:
+    path: "{{ k3s_snapshot_mount_point }}"
+    state: directory
+    owner: root
+    group: root
+    mode: '0755'
+
+- name: NFS-Freigabe für die etcd-Snapshots einbinden
+  ansible.posix.mount:
+    src: "{{ k3s_snapshot_nfs_server }}:{{ k3s_snapshot_nfs_export }}"
+    path: "{{ k3s_snapshot_mount_point }}"
+    fstype: nfs
+    opts: nofail,_netdev,x-systemd.mount-timeout=30
+    state: mounted
+
+- name: Kopier-Skript für etcd-Snapshots deployen
+  ansible.builtin.copy:
+    src: k3s-etcd-snapshot-copy.sh
+    dest: /usr/local/bin/k3s-etcd-snapshot-copy.sh
+    owner: root
+    group: root
+    mode: '0755'
+
+- name: systemd-Service und Timer für die Snapshot-Kopie deployen
+  ansible.builtin.template:
+    src: "{{ item }}.j2"
+    dest: "/etc/systemd/system/{{ item }}"
+    owner: root
+    group: root
+    mode: '0644'
+  loop:
+    - k3s-etcd-snapshot-copy.service
+    - k3s-etcd-snapshot-copy.timer
+
+- name: Snapshot-Timer aktivieren und starten
+  ansible.builtin.systemd:
+    name: k3s-etcd-snapshot-copy.timer
+    enabled: true
+    state: started
+    daemon_reload: true

@@ -1,0 +1,9 @@
+[Unit]
+Description=Copy k3s etcd snapshots to the NAS after each scheduled snapshot
+
+[Timer]
+OnCalendar={{ k3s_snapshot_copy_calendar }}
+Persistent=true
+
+[Install]
+WantedBy=timers.target

@@ -1,5 +1,62 @@
 ---
 
+- name: k3s-Version für die Server festschreiben prüfen
+  ansible.builtin.assert:
+    that:
+      - k3s_version | length > 0
+    fail_msg: >-
+      Im Modus {{ k3s_mode }} muss k3s_version gesetzt sein (alle Server brauchen dieselbe Version).
+  when: k3s_mode in ['init', 'join']
+
+- name: Prüfen dass kein k3s-agent mehr installiert ist
+  ansible.builtin.stat:
+    path: /etc/systemd/system/k3s-agent.service
+  register: k3s_agent_unit
+  when: k3s_mode == 'join'
+
+- name: Abbrechen wenn der k3s-agent noch installiert ist
+  ansible.builtin.fail:
+    msg: >-
+      Auf {{ inventory_hostname }} ist noch der k3s-agent installiert. Vor dem Beitritt als Server
+      /usr/local/bin/k3s-agent-uninstall.sh ausführen und den Node mit kubectl delete node entfernen.
+  when:
+    - k3s_mode == 'join'
+    - k3s_agent_unit.stat.exists
+
+- name: Voraussetzungen für k3s auf dem Server herstellen
+  ansible.builtin.import_role:
+    name: k3s_agent
+    tasks_from: prerequisites.yml
+  when: k3s_mode == 'join'
+
+- name: Firewall-Regeln für die k3s-Server anlegen
+  ansible.builtin.import_tasks: ufw.yml
+  when:
+    - k3s_mode in ['init', 'join']
+    - k3s_ufw_enable | bool
+
+- name: Host-Firewall für k3s konfigurieren
+  ansible.builtin.import_role:
+    name: k3s_agent
+    tasks_from: ufw.yml
+  when:
+    - k3s_mode == 'join'
+    - k3s_agent_ufw_enable | default(false) | bool
+
+- name: Join-Token vom primären Server lesen
+  ansible.builtin.slurp:
+    src: /var/lib/rancher/k3s/server/token
+  delegate_to: "{{ k3s_primary_host }}"
+  register: k3s_join_token_raw
+  no_log: true
+  when: k3s_mode == 'join'
+
+- name: Join-Token als Fakt setzen
+  ansible.builtin.set_fact:
+    k3s_join_token: "{{ k3s_join_token_raw.content | b64decode | trim }}"
+  no_log: true
+  when: k3s_mode == 'join'
+
 - name: Create /etc/rancher/k3s directory
   ansible.builtin.file:
     path: /etc/rancher/k3s
@@ -32,7 +89,8 @@
     dest: /etc/rancher/k3s/config.yaml
     owner: root
     group: root
-    mode: '0644'
+    mode: "{{ '0600' if k3s_mode == 'join' else '0644' }}"
+  no_log: "{{ k3s_mode == 'join' }}"
 
 - name: Check if k3s is already installed
   ansible.builtin.stat:
@@ -100,11 +158,11 @@
     timeout: 120
 
 - name: Wait for k3s node to be in Ready state
-  ansible.builtin.command: kubectl get nodes --no-headers
+  ansible.builtin.command: kubectl get node {{ k3s_node_name }} --no-headers
   register: k3s_nodes_status
   retries: 30
   delay: 10
-  until: "'Ready' in k3s_nodes_status.stdout"
+  until: k3s_nodes_status.rc == 0 and ' Ready' in k3s_nodes_status.stdout and 'NotReady' not in k3s_nodes_status.stdout
   environment:
     KUBECONFIG: /etc/rancher/k3s/k3s.yaml
   changed_when: false
@@ -113,6 +171,41 @@
 - name: Display node status
   ansible.builtin.debug:
     var: k3s_nodes_status.stdout_lines
+
+- name: etcd-Gesundheit der API prüfen
+  ansible.builtin.command: kubectl get --raw=/readyz/etcd
+  register: k3s_etcd_ready
+  retries: 12
+  delay: 10
+  until: k3s_etcd_ready.rc == 0 and k3s_etcd_ready.stdout == 'ok'
+  environment:
+    KUBECONFIG: /etc/rancher/k3s/k3s.yaml
+  changed_when: false
+  check_mode: false
+  when: k3s_mode == 'join'
+
+- name: etcd-Mitglieder zählen
+  ansible.builtin.command: kubectl get nodes -l node-role.kubernetes.io/etcd -o name
+  register: k3s_etcd_members
+  retries: 12
+  delay: 10
+  until: k3s_etcd_members.stdout_lines | length >= k3s_etcd_min_members | int
+  environment:
+    KUBECONFIG: /etc/rancher/k3s/k3s.yaml
+  changed_when: false
+  check_mode: false
+  when: k3s_mode == 'join'
+
+- name: etcd-Mitglieder anzeigen
+  ansible.builtin.debug:
+    var: k3s_etcd_members.stdout_lines
+  when: k3s_mode == 'join'
+
+- name: etcd-Snapshots auf die NAS kopieren einrichten
+  ansible.builtin.import_tasks: snapshots.yml
+  when:
+    - k3s_mode in ['init', 'join']
+    - k3s_snapshot_copy_enabled | bool
 
 - name: Create .kube directory for ubuntu user
   ansible.builtin.file:
