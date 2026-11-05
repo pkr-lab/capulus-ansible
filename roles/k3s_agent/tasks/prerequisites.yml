@@ -1,0 +1,61 @@
+---
+
+- name: nfs-common installieren
+  ansible.builtin.apt:
+    name: nfs-common
+    state: "{{ 'latest' if auto_upgrade | bool else 'present' }}"
+    update_cache: true
+
+- name: Set system hostname
+  ansible.builtin.hostname:
+    name: "{{ k3s_agent_hostname }}"
+    use: systemd
+
+- name: Update /etc/hosts with new hostname
+  ansible.builtin.lineinfile:
+    path: /etc/hosts
+    regexp: '^127\.0\.1\.1'
+    line: "127.0.1.1 {{ k3s_agent_hostname }}"
+    state: present
+
+- name: Disable swap immediately
+  ansible.builtin.command: swapoff -a
+  changed_when: false
+
+- name: Remove swap entries from /etc/fstab
+  ansible.builtin.replace:
+    path: /etc/fstab
+    regexp: '^([^#].*\s+swap\s+.*)$'
+    replace: '# \1'
+
+- name: Create modules-load.d config for k3s
+  ansible.builtin.copy:
+    dest: /etc/modules-load.d/k3s.conf
+    content: |
+      br_netfilter
+      overlay
+    mode: '0644'
+
+- name: Load required kernel modules
+  community.general.modprobe:
+    name: "{{ item }}"
+    state: present
+  loop:
+    - br_netfilter
+    - overlay
+
+- name: Configure sysctl parameters for k3s agent
+  ansible.posix.sysctl:
+    name: "{{ item.key }}"
+    value: "{{ item.value }}"
+    sysctl_file: /etc/sysctl.d/99-k3s.conf
+    reload: true
+    state: present
+  loop:
+    - {key: "net.ipv4.ip_forward", value: "1"}
+    - {key: "net.bridge.bridge-nf-call-iptables", value: "1"}
+    - {key: "net.bridge.bridge-nf-call-ip6tables", value: "1"}
+    - {key: "net.ipv6.conf.all.forwarding", value: "1"}
+    - {key: "fs.inotify.max_user_watches", value: "524288"}
+    - {key: "fs.inotify.max_user_instances", value: "512"}
+    - {key: "vm.swappiness", value: "0"}

@@ -2,5 +2,32 @@
 k3s_installer_url: https://raw.githubusercontent.com/k3s-io/k3s/2977c525a2e7a487886107ce4df43630ae9b03b2/install.sh
 k3s_installer_sha256: e5cc3b3d9dfc1662c2d9be6da5abc9a4cd317d6abc3a5ffc02e3dd3248207fee
 k3s_node_name: "{{ inventory_hostname }}"
+k3s_mode: single
+k3s_primary_host: "{{ (groups['k3s_primary'] | default([]))[0] | default('') }}"
 k3s_helm_release: "v3.22.1"
 k3s_helm_arch: "{{ 'arm64' if ansible_architecture == 'aarch64' else 'amd64' }}"
+
+k3s_node_taints: []
+k3s_tls_san_extra: []
+
+k3s_etcd_heartbeat_interval_ms: 500
+k3s_etcd_election_timeout_ms: 5000
+k3s_etcd_expose_metrics: true
+k3s_etcd_snapshot_cron: "0 */6 * * *"
+k3s_etcd_snapshot_retention: 28
+k3s_etcd_snapshot_compress: true
+k3s_etcd_min_members: "{{ 2 if k3s_mode == 'join' else 1 }}"
+
+k3s_snapshot_copy_enabled: false
+k3s_snapshot_dir: /var/lib/rancher/k3s/server/db/snapshots
+k3s_snapshot_nfs_server: ""
+k3s_snapshot_nfs_export: ""
+k3s_snapshot_mount_point: /mnt/k3s-etcd-snapshots
+k3s_snapshot_copy_calendar: "*-*-* 00,06,12,18:20:00"
+k3s_snapshot_copy_keep_days: 14
+
+k3s_ufw_enable: true
+k3s_ufw_api_sources:
+  - "{{ local_subnet }}"
+  - "100.64.0.0/10"
+k3s_ufw_etcd_extra_peers: []
