@@ -1,5 +1,5 @@
 [Unit]
-Description=Cluster power manager - wakes/shuts down worker-0/worker-1 via WoL based on homeserver load
+Description=Cluster power manager - wakes/shuts down the WoL workers based on control-plane load
 After=network-online.target k3s.service
 Wants=network-online.target
 
