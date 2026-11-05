@@ -1,6 +1,6 @@
 ---
 
-- name: Deploy k3s agent and watchdogs on controlplane-1
+- name: Deploy k3s server and watchdogs on controlplane-1
   hosts: controlplane-1
   become: true
   roles:
@@ -10,8 +10,8 @@
       tags: [ssh-hardening, security]
     - role: tailscale
       tags: [tailscale, vpn]
-    - role: k3s_agent
-      tags: [k3s-agent, kubernetes]
+    - role: k3s
+      tags: [k3s, kubernetes]
     - role: disable_eee
       tags: [disable-eee, network]
     - role: ntfy_publisher
@@ -36,7 +36,7 @@
   tasks:
     - name: controlplane-1 schedulable halten
       ansible.builtin.command:
-        cmd: kubectl uncordon worker-0
+        cmd: kubectl uncordon controlplane-1
       register: uncordon_result
       changed_when: "'uncordoned' in uncordon_result.stdout"
       failed_when: >
