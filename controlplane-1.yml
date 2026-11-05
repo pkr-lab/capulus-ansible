@@ -1,7 +1,7 @@
 ---
 
-- name: Deploy k3s agent and watchdogs on worker-0
-  hosts: worker-0
+- name: Deploy k3s agent and watchdogs on controlplane-1
+  hosts: controlplane-1
   become: true
   roles:
     - role: worker_apt_update
@@ -29,12 +29,12 @@
     - role: cluster_power_manager_target
       tags: [cluster-power-manager-target, power-management]
 
-- name: Uncordon worker-0 nach Provisioning
-  hosts: homeservers
+- name: Uncordon controlplane-1 nach Provisioning
+  hosts: k3s_primary
   become: true
   tags: [uncordon, kubernetes]
   tasks:
-    - name: worker-0 schedulable halten
+    - name: controlplane-1 schedulable halten
       ansible.builtin.command:
         cmd: kubectl uncordon worker-0
       register: uncordon_result

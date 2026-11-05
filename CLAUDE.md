@@ -20,8 +20,8 @@ Ansible-Playbooks und Rollen für das Capulus-Homelab: provisioniert die Ubuntu-
 
 | Pfad | Inhalt |
 |---|---|
-| `site.yml` | Hauptplaybook für den `homeserver` (TECH) |
-| `worker-0.yml`, `worker-1.yml` | k3s-Agents und Watchdogs der Worker |
+| `site.yml` | Hauptplaybook für ControlPlane-0 (`controlplane-0`, TECH) |
+| `controlplane-1.yml`, `worker-1.yml` | ControlPlane-1 und der Worker mit Watchdogs |
 | `prod.yml`, `entw.yml` | PROD- und ENTW-Cluster in den KVM-VMs |
 | `alarm-kiosks.yml`, `banana-pi-kiosks.yml`, `xibo-kiosks.yml` | Kiosk-Raspberry-Pis |
 | `alert-caller.yml` | Telefon-Alarmierung (externe VM und Vereinsheim-Pi) |

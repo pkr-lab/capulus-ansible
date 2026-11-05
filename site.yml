@@ -1,6 +1,6 @@
 ---
-- name: Home Server Setup
-  hosts: homeservers
+- name: Home Server Setup (ControlPlane-0)
+  hosts: k3s_primary
   become: true
   gather_facts: true
 
@@ -105,7 +105,7 @@
     - role: semaphore_targets
 
 - name: Bootstrap Semaphore projects via API
-  hosts: homeservers
+  hosts: k3s_primary
   become: true
   gather_facts: false
   tags: [semaphore, semaphore-bootstrap]
