@@ -1,7 +1,12 @@
 ---
 ansible_become_password: "{{ vault_worker_0_become_password }}"
-hostname: worker-0
-k3s_agent_hostname: worker-0
+hostname: controlplane-1
+k3s_agent_hostname: controlplane-1
+k3s_node_name: controlplane-1
+k3s_mode: join
+k3s_node_taints:
+  - "capulus.homeserver/protected=true:PreferNoSchedule"
+k3s_kubelet_kube_reserved_memory: "1536Mi"
 
 cluster_power_manager_target_enabled: false
 
