@@ -37,6 +37,7 @@ argocd_workloads_apps:
   - carplay-api
   - github-release-watcher
   - isc-news-bot
+  - mattermost
   - mdm
   - mediamtx
   - n8n
