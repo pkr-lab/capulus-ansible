@@ -40,7 +40,6 @@ argocd_workloads_apps:
   - mdm
   - mediamtx
   - n8n
-  - pacman
   - ticket-gate
   - uptime-kuma
   - vaultwarden
