@@ -19,7 +19,6 @@ argocd_server_nodeport_enabled: false
 argocd_platform_apps:
   - sealed-secrets
 argocd_workloads_apps:
-  - demo-app
   - example-whoami
 argocd_network_policy_refined_namespaces:
   - example-whoami
