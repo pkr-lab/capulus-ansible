@@ -7,7 +7,7 @@
       - alamos_kiosk_station | length > 0
     fail_msg: >-
       alamos_kiosk_station ist nicht gesetzt. Pro Host in
-      ansible/inventory/hosts.yml als Host-Var setzen (muss zu einem Key im
+      inventory/hosts.yml als Host-Var setzen (muss zu einem Key im
       SealedSecret alamos-apager-stations passen).
   when: alamos_kiosk_enabled | bool
 
