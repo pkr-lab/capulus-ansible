@@ -27,7 +27,7 @@ jobs:
           python-version: "3.x"
 
       - name: Install yamllint + ansible-lint
-        run: pip install --disable-pip-version-check yamllint ansible-lint
+        run: pip install --disable-pip-version-check -r requirements-lint.txt
 
       - name: Install Ansible Galaxy collections
         run: |

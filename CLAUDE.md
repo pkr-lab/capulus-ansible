@@ -42,7 +42,7 @@ Abhängigkeiten zu capulus-core: die Quellen des alert-caller sind mit Tag und S
 Die CI (`.github/workflows/ci.yml`) hat drei Pflicht-Jobs: `make lint`, Root-CA-Vergleich mit capulus-core, gitleaks.
 
 ```bash
-pip install -q yamllint ansible-lint
+pip install -q -r requirements-lint.txt
 make deps
 make lint
 cmp files/homeserver-root-ca.pem <(curl -fsSL https://raw.githubusercontent.com/pkr-lab/capulus-core/main/pki/homeserver-root-ca.pem)
