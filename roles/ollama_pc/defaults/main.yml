@@ -28,3 +28,39 @@ ollama_pc_ufw_ssh_sources:
 ollama_pc_idle_suspend_enabled: true
 ollama_pc_idle_suspend_minutes: 5
 ollama_pc_idle_suspend_max_load: "1.0"
+
+ollama_pc_hardening_enabled: true
+
+ollama_pc_ssh_dir: "/home/{{ ansible_user }}/.ssh"
+ollama_pc_ssh_private_key_files:
+  - id_ed25519
+  - prod_vm_ed25519
+  - netcup-deploy
+  - client-private.key
+ollama_pc_ssh_public_key_files:
+  - client-public.key
+
+ollama_pc_stale_sudoers_files:
+  - 010-pela-nopasswd
+
+ollama_pc_rpcbind_disabled: true
+
+ollama_pc_disabled_services: []
+
+ollama_pc_security_tools_enabled: true
+ollama_pc_security_packages:
+  - smartmontools
+  - lm-sensors
+  - tpm2-tools
+  - lynis
+  - rkhunter
+  - chkrootkit
+  - clamav
+  - auditd
+  - debsums
+
+ollama_pc_blocked_modules:
+  - dccp
+  - sctp
+  - rds
+  - tipc
