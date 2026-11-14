@@ -26,7 +26,7 @@
     - role: tailscale
       tags: [tailscale, vpn]
     - role: wireguard_backup
-      tags: [wireguard, vpn, backup]
+      tags: [wireguard-backup, wireguard, vpn, backup]
     - role: disable_eee
       tags: [disable-eee, network]
     - role: cpu_power_limit
@@ -83,7 +83,7 @@
           Tailscale check-ins, and internal k3s API traffic. UFW was
           disabled/re-enabled to rebuild its nftables tables from
           /etc/ufw/before.rules. See
-          https://github.com/pkr-lab/pkr-lab-docs/blob/main/capulus-core/c-netzwerk-dns/c0000-dns-architecture.md for details.
+          https://github.com/pkr-lab/pkr-lab-docs/blob/main/capulus/capulus-core/c-netzwerk-dns/c0000-dns-architecture.md for details.
       when: common_ufw_loopback_check.rc != 0
       tags: [always]
 

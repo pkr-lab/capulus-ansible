@@ -6,7 +6,7 @@ Ansible-Playbooks und Rollen für das Capulus-Homelab: provisioniert die Ubuntu-
 
 ## Harte Regeln
 
-- **Keine neuen Kommentare im Code.** Gilt für YAML, Jinja-Templates, Shell und Makefile. Bestehende Kommentare bleiben, bis die Stelle ohnehin überarbeitet wird; dann die Begründung ins Doc verschieben. Einzige Ausnahme: der Versions-Kommentar `# vX.Y.Z` hinter der Commit-SHA in `uses:`-Zeilen der Workflows (Renovate und Dependabot lesen ihn).
+- **Keine neuen Kommentare im Code.** Gilt für YAML, Jinja-Templates, Shell und Makefile. Bestehende Kommentare bleiben, bis die Stelle ohnehin überarbeitet wird; dann die Begründung ins Doc verschieben. Einzige Ausnahme: der Versions-Kommentar `# vX.Y.Z` hinter der Commit-SHA in `uses:`-Zeilen der Workflows (Renovate liest ihn).
 - **Doku liegt nicht in diesem Repo, sondern in [pkr-lab-docs](https://github.com/pkr-lab/pkr-lab-docs)** unter `capulus/capulus-ansible/`. Jede Codeänderung bekommt dort einen PR: Rollen-Doc unter `rollen/<rolle>.md`, Hintergründe (warum) unter `6-hintergruende/` (Rollen: `60020-ansible-rollen.md`). Konventionen stehen in der `CLAUDE.md` von pkr-lab-docs.
 - **Vor dem Ändern einer Rolle das Rollen-Doc und den Hintergrund-Eintrag lesen.** Die meisten Eigenheiten existieren, weil der naheliegende Ansatz schon einmal gescheitert ist.
 - **Vault-Dateien nie anfassen:** `group_vars/all.yml` und `group_vars/user_inventory_vault.yml` sind mit ansible-vault verschlüsselt. Nie entschlüsseln, ausgeben oder neu anlegen. Änderungen daran macht der Nutzer selbst (`make vault-edit`, `make user-inventory-edit`).
@@ -28,6 +28,7 @@ Ansible-Playbooks und Rollen für das Capulus-Homelab: provisioniert die Ubuntu-
 | `alert-caller.yml` | Telefon-Alarmierung (externe VM und Vereinsheim-Pi) |
 | `render-bootstrap.yml` | erzeugt `argocd/bootstrap/` in capulus-core |
 | `vaultwarden-restore.yml` | Wiederherstellung von Vaultwarden |
+| `ollama-pc.yml` | Ollama-Desktop-PC (Dienst, Idle-Suspend, Wake-on-LAN) |
 | `roles/<rolle>/` | `defaults/`, `tasks/`, `templates/`; Tags entsprechen dem Rollennamen mit Bindestrich |
 | `inventory/hosts.yml`, `group_vars/`, `host_vars/` | Hosts und Variablen |
 | `files/homeserver-root-ca.pem` | Kopie der Root-CA, Quelle der Wahrheit ist `pki/` in capulus-core |
@@ -42,7 +43,7 @@ Abhängigkeiten zu capulus-core: die Quellen des alert-caller sind mit Tag und S
 Die CI (`.github/workflows/ci.yml`) hat drei Pflicht-Jobs: `make lint`, Root-CA-Vergleich mit capulus-core, gitleaks.
 
 ```bash
-pip install -q yamllint ansible-lint
+pip install -q -r requirements-lint.txt
 make deps
 make lint
 cmp files/homeserver-root-ca.pem <(curl -fsSL https://raw.githubusercontent.com/pkr-lab/capulus-core/main/pki/homeserver-root-ca.pem)

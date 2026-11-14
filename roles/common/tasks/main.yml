@@ -152,7 +152,6 @@
     - {key: "fs.inotify.max_user_watches", value: "524288"}
     - {key: "fs.inotify.max_user_instances", value: "512"}
     - {key: "vm.swappiness", value: "0"}
-  notify: Reload sysctl
 
 - name: Allow SSH (port 22) before any other firewall changes
   community.general.ufw:

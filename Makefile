@@ -17,9 +17,12 @@ help: ## Show this help.
 deps: ## Install required Ansible Galaxy collections.
 	ansible-galaxy collection install -r requirements.yml
 
-.PHONY: ping
-ping: ## Verify Ansible can reach the server.
+.PHONY: ping ping-all
+ping: ## Verify Ansible can reach controlplane-0 (k3s_primary).
 	ansible -i $(INVENTORY) k3s_primary -m ping
+
+ping-all: ## Verify Ansible can reach every host in the inventory.
+	ansible -i $(INVENTORY) all -m ping $(VAULT_OPTS)
 
 .PHONY: check
 check: ## Dry-run the full playbook (no changes applied).
@@ -115,14 +118,14 @@ ollama-pc-local: ## Ollama-PC-Playbook direkt auf dem Desktop-PC ausfuehren (ohn
 	ansible-playbook -i $(INVENTORY) $(OLLAMA_PC_PLAYBOOK) --limit ollama-pc --connection local --ask-become-pass $(VAULT_OPTS)
 
 .PHONY: prod prod-check
-prod: ## Deploy PROD-Cluster (k3s) in der KVM-VM auf controlplane-0 (192.168.178.99, pkr-lab-docs/capulus-core/4-planung/40080 Phase 2.5). VM muss laufen (make libvirt-host).
+prod: ## Deploy PROD-Cluster (k3s) in der KVM-VM auf controlplane-0 (192.168.178.99, pkr-lab-docs/capulus/capulus-core/4-planung/40080 Phase 2.5). VM muss laufen (make libvirt-host).
 	ansible-playbook -i $(INVENTORY) $(PROD_PLAYBOOK) $(VAULT_OPTS)
 
 prod-check: ## Dry-run des PROD-Playbooks.
 	ansible-playbook -i $(INVENTORY) $(PROD_PLAYBOOK) --check --diff $(VAULT_OPTS)
 
 .PHONY: entw entw-check
-entw: ## Deploy ENTW-Cluster (k3s + ArgoCD) in der KVM-VM auf worker-1 (192.168.178.100, pkr-lab-docs/capulus-core/4-planung/40080 Phase 1.2). VM muss laufen (make worker-1-libvirt-host).
+entw: ## Deploy ENTW-Cluster (k3s + ArgoCD) in der KVM-VM auf worker-1 (192.168.178.100, pkr-lab-docs/capulus/capulus-core/4-planung/40080 Phase 1.2). VM muss laufen (make worker-1-libvirt-host).
 	ansible-playbook -i $(INVENTORY) $(ENTW_PLAYBOOK) $(VAULT_OPTS)
 
 entw-check: ## Dry-run des ENTW-Playbooks.
@@ -138,7 +141,7 @@ cups-print-server: ## Re-deploy only the cups_print_server role on controlplane-
 	ansible-playbook -i $(INVENTORY) $(PLAYBOOK) --tags cups-print-server $(VAULT_OPTS)
 
 .PHONY: libvirt-host
-libvirt-host: ## Re-deploy only the libvirt_host role (PROD-VM, pkr-lab-docs/capulus-core/4-planung/40080 Baustein 5). Braucht libvirt_host_enabled: true in group_vars/all.yml.
+libvirt-host: ## Re-deploy only the libvirt_host role (PROD-VM, pkr-lab-docs/capulus/capulus-core/4-planung/40080 Baustein 5). Braucht libvirt_host_enabled: true in group_vars/all.yml.
 	ansible-playbook -i $(INVENTORY) $(PLAYBOOK) --tags libvirt-host $(VAULT_OPTS)
 
 .PHONY: libvirt-bridge
@@ -146,7 +149,7 @@ libvirt-bridge: ## NUR das Bridge-Netzwerk (libvirt_host, riskant - siehe Rollen
 	ansible-playbook -i $(INVENTORY) $(PLAYBOOK) --tags libvirt-bridge $(VAULT_OPTS)
 
 .PHONY: worker-1-libvirt-host
-worker-1-libvirt-host: ## Re-deploy only the libvirt_host role auf worker-1 (ENTW-VM, pkr-lab-docs/capulus-core/4-planung/40080 Phase 1). Braucht libvirt_host_enabled: true in host_vars/worker-1/vars.yml.
+worker-1-libvirt-host: ## Re-deploy only the libvirt_host role auf worker-1 (ENTW-VM, pkr-lab-docs/capulus/capulus-core/4-planung/40080 Phase 1). Braucht libvirt_host_enabled: true in host_vars/worker-1/vars.yml.
 	ansible-playbook -i $(INVENTORY) $(HS3_PLAYBOOK) --tags libvirt-host $(VAULT_OPTS)
 
 .PHONY: worker-1-libvirt-bridge
@@ -157,8 +160,8 @@ nightly-worker-wake: ## Re-deploy only the nightly_worker_wake role on controlpl
 	ansible-playbook -i $(INVENTORY) $(PLAYBOOK) --tags nightly-worker-wake $(VAULT_OPTS)
 
 worker-apt-update: ## Manuelles apt-Update auf controlplane-1 + worker-1 (läuft normalerweise nachts automatisch über nightly-worker-wake).
-	ansible-playbook -i $(INVENTORY) $(CP1_PLAYBOOK) --tags apt-update $(VAULT_OPTS)
-	ansible-playbook -i $(INVENTORY) $(HS3_PLAYBOOK) --tags apt-update $(VAULT_OPTS)
+	ansible-playbook -i $(INVENTORY) $(CP1_PLAYBOOK) --tags worker-apt-update $(VAULT_OPTS)
+	ansible-playbook -i $(INVENTORY) $(HS3_PLAYBOOK) --tags worker-apt-update $(VAULT_OPTS)
 
 .PHONY: alarm-kiosks alarm-kiosks-check
 ALARM_PLAYBOOK := alarm-kiosks.yml
@@ -221,7 +224,7 @@ vault-edit: ## Edit the vault-encrypted vars file.
 
 .PHONY: user-inventory-edit
 USER_INVENTORY_FILE := group_vars/user_inventory_vault.yml
-user-inventory-edit: ## Edit the encrypted Immich/Vaultwarden user inventory (pkr-lab-docs/capulus-core/4-planung/40080, Baustein 7). First run: ansible-vault create $(USER_INVENTORY_FILE).
+user-inventory-edit: ## Edit the encrypted Immich/Vaultwarden user inventory (pkr-lab-docs/capulus/capulus-core/4-planung/40080, Baustein 7). First run: ansible-vault create $(USER_INVENTORY_FILE).
 	ansible-vault edit $(USER_INVENTORY_FILE)
 
 .PHONY: vaultwarden-restore
@@ -234,6 +237,11 @@ vaultwarden-restore: ## Vaultwarden-Daten aus der NAS-Backup-PVC wiederherstelle
 .PHONY: clean
 clean: ## Remove cached collections and temp artifacts.
 	rm -rf ~/.ansible/collections/ansible_collections/{ansible,community,kubernetes}
+
+.PHONY: credentials
+DECRYPT ?=
+credentials: ## Credential-Schlüssel aus group_vars/all.yml und host_vars als Tabelle zeigen; DECRYPT=1 entschlüsselt die Werte.
+	./scripts/show-credentials.sh $(if $(DECRYPT),--decrypt)
 
 .PHONY: hooks
 hooks: ## Install the commit-msg hook (Conventional Commits).

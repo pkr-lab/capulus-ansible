@@ -23,7 +23,7 @@ Abhängigkeiten zu anderen Repos:
 
 ## Dokumentation
 
-[pkr-lab-docs / capulus-ansible](https://github.com/pkr-lab/pkr-lab-docs/tree/main/capulus-ansible)
+[pkr-lab-docs / capulus-ansible](https://github.com/pkr-lab/pkr-lab-docs/tree/main/capulus/capulus-ansible)
 
 ## Lizenz
 
