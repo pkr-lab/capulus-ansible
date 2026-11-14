@@ -32,6 +32,10 @@ fail() {
 trap 'fail "unerwarteter Fehler in Zeile ${LINENO}"' ERR
 
 if ! mountpoint -q "$MOUNT_POINT"; then
+  timeout 45 mount "$MOUNT_POINT" || true
+fi
+
+if ! mountpoint -q "$MOUNT_POINT"; then
   fail "${MOUNT_POINT} ist nicht eingebunden"
 fi
 

@@ -411,3 +411,14 @@
   when:
     - common_reboot_required.stat.exists
     - lookup('env', 'SEMAPHORE_TASK_ID') | length > 0
+
+- name: nicht benötigte dienste stoppen und deaktivieren
+  ansible.builtin.systemd:
+    name: "{{ item }}"
+    enabled: false
+    state: stopped
+  loop: "{{ common_disabled_services }}"
+  register: common_disabled_services_result
+  failed_when:
+    - common_disabled_services_result is failed
+    - "'Could not find' not in (common_disabled_services_result.msg | default(''))"

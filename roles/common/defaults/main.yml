@@ -9,3 +9,6 @@ common_ufw_k3s_api_sources:
 common_ufw_trusted_hosts: []
 
 common_ufw_lan_services: []
+
+common_disabled_services:
+  - ModemManager.service

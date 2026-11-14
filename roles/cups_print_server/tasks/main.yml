@@ -25,6 +25,18 @@
     - avahi-daemon
   when: cups_print_server_enabled | bool
 
+- name: nicht benötigte cups-dienste stoppen und deaktivieren
+  ansible.builtin.systemd:
+    name: "{{ item }}"
+    enabled: false
+    state: stopped
+  loop: "{{ cups_print_server_disabled_services }}"
+  register: cups_print_server_disabled_services_result
+  failed_when:
+    - cups_print_server_disabled_services_result is failed
+    - "'Could not find' not in (cups_print_server_disabled_services_result.msg | default(''))"
+  when: cups_print_server_enabled | bool
+
 - name: Warten, bis cupsd auf Port 631 antwortet
   ansible.builtin.wait_for:
     host: 127.0.0.1
