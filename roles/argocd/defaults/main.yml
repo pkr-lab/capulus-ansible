@@ -2,6 +2,8 @@
 
 argocd_entw_layout: false
 
+argocd_show_initial_password: false
+
 argocd_ci_account_enabled: true
 
 argocd_ingress_enabled: false
