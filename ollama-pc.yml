@@ -6,3 +6,7 @@
   roles:
     - role: ollama_pc
       tags: [ollama-pc, llm]
+    - role: ssh_hardening
+      tags: [ssh-hardening, security]
+    - role: restic_backup
+      tags: [restic-backup, backup]

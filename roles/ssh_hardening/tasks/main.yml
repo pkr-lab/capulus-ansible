@@ -2,6 +2,14 @@
 
 - name: sshd-härtung ablegen, prüfen und anwenden
   block:
+    - name: sshd-drop-in-verzeichnis anlegen
+      ansible.builtin.file:
+        path: "{{ ssh_hardening_dropin | dirname }}"
+        state: directory
+        owner: root
+        group: root
+        mode: "0755"
+
     - name: sshd-drop-in ablegen
       ansible.builtin.template:
         src: 00-hardening.conf.j2
