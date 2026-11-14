@@ -6,7 +6,7 @@
       WARNUNG: wake_on_lan_mac_address für {{ item.name }} ist leer oder
       noch ein Platzhalter ({{ item.mac_address }}). Mit `ip link show`
       auf {{ item.name }} ermitteln und in
-      ansible/host_vars/{{ item.name }}/vars.yml eintragen — sonst kann
+      host_vars/{{ item.name }}/vars.yml eintragen — sonst kann
       cluster_power_manager diesen Worker nicht per WoL wecken.
   loop: "{{ cluster_power_manager_workers }}"
   loop_control:
