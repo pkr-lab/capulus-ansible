@@ -40,11 +40,6 @@
     semaphore_admin_password: "{{ semaphore_admin_pw_slurp.content | b64decode | trim }}"
   no_log: true
 
-- name: Check whether the access key encryption file already exists
-  ansible.builtin.stat:
-    path: "{{ semaphore_state_dir }}/access_key_encryption"
-  register: semaphore_aek_stat
-
 - name: Generate the access key encryption key (first run only)
   ansible.builtin.shell:
     cmd: "set -o pipefail && head -c32 /dev/urandom | base64 > {{ semaphore_state_dir }}/access_key_encryption"
