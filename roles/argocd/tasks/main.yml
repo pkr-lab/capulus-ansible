@@ -139,7 +139,7 @@
       - "=================================================="
       - "IMPORTANT: Change this password after first login!"
       - "=================================================="
-  when: not (argocd_show_initial_password | default(false) | bool)
+  when: not (argocd_show_initial_password | bool)
 
 - name: Display ArgoCD initial credentials (password shown)
   ansible.builtin.debug:
@@ -154,7 +154,7 @@
       - "=================================================="
       - "IMPORTANT: Change this password after first login!"
       - "=================================================="
-  when: argocd_show_initial_password | default(false) | bool
+  when: argocd_show_initial_password | bool
 
 - name: Template bootstrap AppProjects
   ansible.builtin.template:
