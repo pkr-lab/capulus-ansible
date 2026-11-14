@@ -7,7 +7,7 @@ address=/controlplane-0/{{ network_static_ip }}
 
 address=/dev.homeserver/{{ entw_vm_ip }}
 
-{% for host in dnsmasq_prod_vm_hosts | default([]) %}
+{% for host in dnsmasq_prod_vm_hosts %}
 address=/{{ host }}/{{ prod_vm_ip }}
 {% endfor %}
 
