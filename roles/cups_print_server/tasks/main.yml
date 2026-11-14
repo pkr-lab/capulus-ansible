@@ -302,21 +302,11 @@
         - cups_print_server_device_uri | length > 0
         - cups_print_server_ppd | length > 0
 
-    - name: "Extra-Queues: Splix-Katalog nach passenden PPDs durchsuchen (Debug)"
-      ansible.builtin.debug:
-        msg: >-
-          {{ cups_print_server_available_ppds.stdout_lines
-             | default([])
-             | select('search', '(?i)splix|samsung|spl')
-             | list
-             | default(['(keine gefunden — siehe https://github.com/pkr-lab/pkr-lab-docs/blob/main/capulus-ansible/2-betrieb-hardware/20040-printer.md)'], true) }}
-      when: cups_print_server_extra_queues | length > 0
-
     - name: "Extra-Queues: warnen, wenn ppd noch nicht gesetzt ist"
       ansible.builtin.debug:
         msg: >-
           Queue "{{ item.name }}": ppd ist noch leer — wird NICHT angelegt.
-          Passenden Treffer aus der Splix-Katalog-Debug-Ausgabe oben in
+          Passenden Treffer aus der Ausgabe „Samsung/SPL-passende PPDs“ oben in
           cups_print_server_extra_queues eintragen. Siehe https://github.com/pkr-lab/pkr-lab-docs/blob/main/capulus-ansible/2-betrieb-hardware/20040-printer.md.
       loop: "{{ cups_print_server_extra_queues }}"
       loop_control:
