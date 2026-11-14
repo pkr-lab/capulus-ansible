@@ -1,0 +1,25 @@
+---
+
+restic_backup_enabled: false
+
+restic_backup_user: "{{ ansible_user }}"
+restic_backup_paths:
+  - "/home/{{ ansible_user }}"
+restic_backup_excludes:
+  - .cache
+  - node_modules
+  - .npm
+  - .cargo/registry
+  - go/pkg/mod
+  - .local/share/Trash
+  - snap/*/common/.cache
+
+restic_backup_repository: ""
+restic_backup_password: ""
+restic_backup_config_dir: /etc/restic-backup
+
+restic_backup_calendar: daily
+restic_backup_prune_calendar: weekly
+restic_backup_keep_daily: 7
+restic_backup_keep_weekly: 4
+restic_backup_keep_monthly: 6

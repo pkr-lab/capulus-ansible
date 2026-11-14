@@ -1,7 +1,7 @@
 ---
 
 - name: Einheitliche k3s-Version auf allen Servern prüfen
-  hosts: k3s_servers
+  hosts: k3s_primary
   gather_facts: false
   tasks:
     - name: Prüfen dass alle Server dieselbe k3s_version haben
@@ -10,7 +10,6 @@
           - k3s_version | length > 0
           - groups['k3s_servers'] | map('extract', hostvars, 'k3s_version') | unique | length == 1
         fail_msg: Die k3s_version ist nicht gesetzt oder auf den Servern unterschiedlich.
-      run_once: true
 
 - name: k3s auf den Servern nacheinander aktualisieren
   hosts: k3s_servers
