@@ -3,8 +3,8 @@
 ollama_pc_install_script_url: https://ollama.com/install.sh
 ollama_pc_version: ""
 
-ollama_pc_listen: "0.0.0.0:11434"
 ollama_pc_port: 11434
+ollama_pc_listen: "0.0.0.0:{{ ollama_pc_port }}"
 ollama_pc_keep_alive: 5m
 ollama_pc_flash_attention: 1
 ollama_pc_kv_cache_type: q8_0
