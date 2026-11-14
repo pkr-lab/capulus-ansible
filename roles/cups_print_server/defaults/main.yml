@@ -26,6 +26,9 @@ cups_print_server_packages:
   - avahi-daemon
   - usbutils
 
+cups_print_server_disabled_services:
+  - cups-browsed.service
+
 cups_print_server_admin_users:
   - ubuntu
 

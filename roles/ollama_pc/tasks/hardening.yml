@@ -1,0 +1,110 @@
+---
+
+- name: ssh-verzeichnis absichern
+  ansible.builtin.file:
+    path: "{{ ollama_pc_ssh_dir }}"
+    state: directory
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+    mode: "0700"
+
+- name: vorhandene schlüsseldateien ermitteln
+  ansible.builtin.stat:
+    path: "{{ ollama_pc_ssh_dir }}/{{ item }}"
+  loop: "{{ ollama_pc_ssh_private_key_files + ollama_pc_ssh_public_key_files }}"
+  register: ollama_pc_ssh_key_stats
+
+- name: rechte privater schlüsseldateien auf 0600 setzen
+  ansible.builtin.file:
+    path: "{{ item.stat.path }}"
+    mode: "0600"
+  loop: "{{ ollama_pc_ssh_key_stats.results }}"
+  loop_control:
+    label: "{{ item.item }}"
+  when:
+    - item.stat.exists
+    - item.item in ollama_pc_ssh_private_key_files
+
+- name: rechte öffentlicher schlüsseldateien auf 0644 setzen
+  ansible.builtin.file:
+    path: "{{ item.stat.path }}"
+    mode: "0644"
+  loop: "{{ ollama_pc_ssh_key_stats.results }}"
+  loop_control:
+    label: "{{ item.item }}"
+  when:
+    - item.stat.exists
+    - item.item in ollama_pc_ssh_public_key_files
+
+- name: veraltete sudoers-dateien ermitteln
+  ansible.builtin.stat:
+    path: "/etc/sudoers.d/{{ item }}"
+  loop: "{{ ollama_pc_stale_sudoers_files }}"
+  register: ollama_pc_sudoers_stats
+
+- name: leere sudoers-dateien entfernen
+  ansible.builtin.file:
+    path: "{{ item.stat.path }}"
+    state: absent
+  loop: "{{ ollama_pc_sudoers_stats.results }}"
+  loop_control:
+    label: "{{ item.item }}"
+  when:
+    - item.stat.exists
+    - item.stat.size == 0
+
+- name: sicherheits- und prüfwerkzeuge installieren
+  ansible.builtin.apt:
+    name: "{{ ollama_pc_security_packages }}"
+    state: present
+    install_recommends: false
+  when: ollama_pc_security_tools_enabled | bool
+
+- name: auditd aktivieren und starten
+  ansible.builtin.systemd:
+    name: auditd.service
+    enabled: true
+    state: started
+  when:
+    - ollama_pc_security_tools_enabled | bool
+    - "'auditd' in ollama_pc_security_packages"
+    - not ansible_check_mode
+
+- name: ungenutzte netzwerkprotokolle sperren
+  ansible.builtin.template:
+    src: blocked-modules.conf.j2
+    dest: /etc/modprobe.d/60-blocked-modules.conf
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: nfs-einbindungen ermitteln
+  ansible.builtin.set_fact:
+    ollama_pc_nfs_in_use: "{{ ansible_mounts | selectattr('fstype', 'match', '^nfs') | list | length > 0 }}"
+
+- name: rpcbind stoppen und deaktivieren
+  ansible.builtin.systemd:
+    name: "{{ item }}"
+    enabled: false
+    state: stopped
+  loop:
+    - rpcbind.socket
+    - rpcbind.service
+  register: ollama_pc_rpcbind_result
+  failed_when:
+    - ollama_pc_rpcbind_result is failed
+    - "'Could not find' not in (ollama_pc_rpcbind_result.msg | default(''))"
+  when:
+    - ollama_pc_rpcbind_disabled | bool
+    - not ollama_pc_nfs_in_use
+
+- name: weitere nicht benötigte dienste stoppen und deaktivieren
+  ansible.builtin.systemd:
+    name: "{{ item }}"
+    enabled: false
+    state: stopped
+  loop: "{{ ollama_pc_disabled_services }}"
+  register: ollama_pc_disabled_services_result
+  failed_when:
+    - ollama_pc_disabled_services_result is failed
+    - "'Could not find' not in (ollama_pc_disabled_services_result.msg | default(''))"

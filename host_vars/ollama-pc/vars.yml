@@ -8,3 +8,5 @@ ollama_pc_interface: enp7s0
 ollama_pc_nm_connection: netplan-enp7s0
 
 ansible_become_exe: /usr/bin/sudo.ws
+
+ssh_hardening_allow_tcp_forwarding: true
