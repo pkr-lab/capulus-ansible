@@ -7,4 +7,4 @@
   become: true
   roles:
     - role: worker_apt_update
-      tags: [apt-update, updates]
+      tags: [worker-apt-update, apt-update, updates]
