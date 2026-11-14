@@ -17,9 +17,12 @@ help: ## Show this help.
 deps: ## Install required Ansible Galaxy collections.
 	ansible-galaxy collection install -r requirements.yml
 
-.PHONY: ping
-ping: ## Verify Ansible can reach the server.
+.PHONY: ping ping-all
+ping: ## Verify Ansible can reach controlplane-0 (k3s_primary).
 	ansible -i $(INVENTORY) k3s_primary -m ping
+
+ping-all: ## Verify Ansible can reach every host in the inventory.
+	ansible -i $(INVENTORY) all -m ping $(VAULT_OPTS)
 
 .PHONY: check
 check: ## Dry-run the full playbook (no changes applied).
@@ -234,6 +237,11 @@ vaultwarden-restore: ## Vaultwarden-Daten aus der NAS-Backup-PVC wiederherstelle
 .PHONY: clean
 clean: ## Remove cached collections and temp artifacts.
 	rm -rf ~/.ansible/collections/ansible_collections/{ansible,community,kubernetes}
+
+.PHONY: credentials
+DECRYPT ?=
+credentials: ## Credential-Schlüssel aus group_vars/all.yml und host_vars als Tabelle zeigen; DECRYPT=1 entschlüsselt die Werte.
+	./scripts/show-credentials.sh $(if $(DECRYPT),--decrypt)
 
 .PHONY: hooks
 hooks: ## Install the commit-msg hook (Conventional Commits).
