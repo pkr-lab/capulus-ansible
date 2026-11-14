@@ -142,7 +142,7 @@
   ansible.builtin.command: /tmp/get-k3s.sh server
   environment:
     INSTALL_K3S_VERSION: "{{ k3s_version }}"
-    INSTALL_K3S_CHANNEL: "{{ k3s_channel | default('stable') }}"
+    INSTALL_K3S_CHANNEL: "{{ k3s_channel }}"
   register: k3s_install
   retries: 3
   delay: 10
