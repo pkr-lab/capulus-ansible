@@ -7,7 +7,7 @@
       - banana_pi_kiosk_station | length > 0
     fail_msg: >-
       banana_pi_kiosk_station ist nicht gesetzt. Pro Host in
-      ansible/inventory/hosts.yml (Gruppe banana_pis) als Host-Var setzen
+      inventory/hosts.yml (Gruppe banana_pis) als Host-Var setzen
       (muss zu einem Key im SealedSecret alamos-apager-stations passen).
   when: banana_pi_kiosk_enabled | bool
 

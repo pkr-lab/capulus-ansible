@@ -179,9 +179,3 @@
       - "Advertised subnet: {{ tailscale_advertise_routes if (tailscale_advertise_routes | default('') | length > 0) else 'none (reiner Tailnet-Client)' }}"
       - "NOTE: Approve the advertised subnet route in the admin panel (falls gesetzt):"
       - "      https://login.tailscale.com/admin/machines"
-
-- name: Ensure tailscaled is enabled at boot
-  ansible.builtin.systemd:
-    name: tailscaled
-    enabled: true
-  become: true

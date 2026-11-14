@@ -7,7 +7,7 @@
       - vmagent_remote_write_url | length > 0
     fail_msg: >-
       vmagent_remote_write_url ist nicht gesetzt — siehe
-      ansible/group_vars/banana_pis.yml.
+      group_vars/banana_pis.yml.
   when: vmagent_enabled | bool
 
 - name: System-User fuer vmagent anlegen

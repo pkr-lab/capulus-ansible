@@ -6,7 +6,7 @@
       {{ vaultwarden_release }}-data PVC mit dem NAS-Backup ueberschreiben.
       Nur ausfuehren, wenn das wirklich gewollt ist (frischer Redeploy oder
       Disaster Recovery), dann erneut mit -e force_restore=true starten.
-  when: not force_restore
+  when: not (force_restore | bool)
 
 - name: Vaultwarden-Deployment auf 0 Replicas skalieren
   ansible.builtin.command: >
