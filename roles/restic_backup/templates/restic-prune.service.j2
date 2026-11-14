@@ -1,0 +1,13 @@
+[Unit]
+Description=Restic Aufbewahrung und Integritätsprüfung
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User={{ restic_backup_user }}
+EnvironmentFile={{ restic_backup_config_dir }}/env
+ExecStart=/usr/bin/restic forget --keep-daily {{ restic_backup_keep_daily }} --keep-weekly {{ restic_backup_keep_weekly }} --keep-monthly {{ restic_backup_keep_monthly }} --prune
+ExecStart=/usr/bin/restic check
+Nice=19
+IOSchedulingClass=idle

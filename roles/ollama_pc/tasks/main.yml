@@ -30,6 +30,11 @@
       - ufw
     state: present
 
+- name: härtung des arbeitsplatzes anwenden
+  ansible.builtin.import_tasks: hardening.yml
+  when: ollama_pc_hardening_enabled | bool
+  tags: [hardening]
+
 - name: prüfen, ob ollama installiert ist
   ansible.builtin.command: which ollama
   register: ollama_pc_which
@@ -163,10 +168,12 @@
 
 - name: tailscale-routenübernahme des lan-subnetzes abschalten
   ansible.builtin.shell: |
-    if command -v tailscale >/dev/null 2>&1 && tailscale debug prefs | grep -q '"RouteAll": true'; then
+    if command -v tailscale >/dev/null 2>&1 && grep -q '"RouteAll": true' <<<"$(tailscale debug prefs)"; then
       tailscale set --accept-routes=false
       echo changed
     fi
+  args:
+    executable: /bin/bash
   register: ollama_pc_tailscale_routes
   changed_when: "'changed' in ollama_pc_tailscale_routes.stdout"
   when: not ansible_check_mode
