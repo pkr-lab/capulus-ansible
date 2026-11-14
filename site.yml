@@ -26,7 +26,7 @@
     - role: tailscale
       tags: [tailscale, vpn]
     - role: wireguard_backup
-      tags: [wireguard, vpn, backup]
+      tags: [wireguard-backup, wireguard, vpn, backup]
     - role: disable_eee
       tags: [disable-eee, network]
     - role: cpu_power_limit

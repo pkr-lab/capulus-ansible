@@ -157,8 +157,8 @@ nightly-worker-wake: ## Re-deploy only the nightly_worker_wake role on controlpl
 	ansible-playbook -i $(INVENTORY) $(PLAYBOOK) --tags nightly-worker-wake $(VAULT_OPTS)
 
 worker-apt-update: ## Manuelles apt-Update auf controlplane-1 + worker-1 (läuft normalerweise nachts automatisch über nightly-worker-wake).
-	ansible-playbook -i $(INVENTORY) $(CP1_PLAYBOOK) --tags apt-update $(VAULT_OPTS)
-	ansible-playbook -i $(INVENTORY) $(HS3_PLAYBOOK) --tags apt-update $(VAULT_OPTS)
+	ansible-playbook -i $(INVENTORY) $(CP1_PLAYBOOK) --tags worker-apt-update $(VAULT_OPTS)
+	ansible-playbook -i $(INVENTORY) $(HS3_PLAYBOOK) --tags worker-apt-update $(VAULT_OPTS)
 
 .PHONY: alarm-kiosks alarm-kiosks-check
 ALARM_PLAYBOOK := alarm-kiosks.yml
