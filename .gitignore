@@ -17,3 +17,7 @@ vault-password*
 *.sqlite
 .cache/
 dist/
+.ansible/
+*.retry
+.venv/
+venv/
