@@ -21,4 +21,7 @@
     enabled: false
     state: stopped
   when: not (node_exporter_enabled | bool)
-  failed_when: false
+  register: node_exporter_deaktivieren_result
+  failed_when:
+    - node_exporter_deaktivieren_result is failed
+    - "'Could not find' not in (node_exporter_deaktivieren_result.msg | default(''))"

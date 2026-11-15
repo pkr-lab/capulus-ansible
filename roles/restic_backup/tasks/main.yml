@@ -66,8 +66,15 @@
       become_user: "{{ restic_backup_user }}"
       register: restic_backup_repo_check
       changed_when: false
-      failed_when: false
+      failed_when:
+        - restic_backup_repo_check.rc != 0
+        - not restic_backup_repo_missing | bool
       check_mode: false
+      vars:
+        restic_backup_repo_missing: >-
+          {{ restic_backup_repo_check.rc == 10
+             or 'does not exist' in restic_backup_repo_check.stderr
+             or 'Is there a repository at the following location' in restic_backup_repo_check.stderr }}
 
     - name: repository initialisieren
       ansible.builtin.command: restic init

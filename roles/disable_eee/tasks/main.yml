@@ -31,4 +31,7 @@
     enabled: false
     state: stopped
   when: not (disable_eee_enabled | bool)
-  failed_when: false
+  register: disable_eee_deaktivieren_result
+  failed_when:
+    - disable_eee_deaktivieren_result is failed
+    - "'Could not find' not in (disable_eee_deaktivieren_result.msg | default(''))"

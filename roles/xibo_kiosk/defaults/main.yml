@@ -26,7 +26,6 @@ xibo_kiosk_image_jpeg_quality: 85
 
 xibo_kiosk_cursor_hide_seconds: 3
 
-xibo_kiosk_display_poll_seconds: 5
 xibo_kiosk_display_mode: "1920x1080"
 xibo_kiosk_pixel_aspect: auto
 

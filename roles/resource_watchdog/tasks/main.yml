@@ -62,4 +62,7 @@
   loop_control:
     label: "{{ item.name }}"
   when: not (resource_watchdog_enabled | bool)
-  failed_when: false
+  register: resource_watchdog_deaktivieren_result
+  failed_when:
+    - resource_watchdog_deaktivieren_result is failed
+    - "'Could not find' not in (resource_watchdog_deaktivieren_result.msg | default(''))"

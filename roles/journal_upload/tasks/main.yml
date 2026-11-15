@@ -8,17 +8,22 @@
     cache_valid_time: 3600
   when: journal_upload_enabled | bool
 
-- name: Homeserver-Root-CA-Zertifikat deployen (TLS-Pruefung des Log-Endpunkts)
-  ansible.builtin.copy:
-    src: "{{ journal_upload_ca_src }}"
-    dest: "{{ journal_upload_ca_dest }}"
-    owner: root
-    group: root
-    mode: "0644"
+- name: homeserver-root-ca verteilen (tls-pruefung des log-endpunkts)
+  ansible.builtin.include_role:
+    name: homeserver_ca
+  vars:
+    homeserver_ca_src: "{{ journal_upload_ca_src }}"
+    homeserver_ca_dest: "{{ journal_upload_ca_dest }}"
   when: journal_upload_enabled | bool and journal_upload_push_url.startswith('https://')
-  notify:
-    - Homeserver-CA-Vertrauensspeicher aktualisieren
-    - Restart systemd-journal-upload
+
+- name: journal-upload nach einem ca-wechsel neu starten
+  ansible.builtin.debug:
+    msg: "Homeserver-Root-CA wurde aktualisiert"
+  changed_when: true
+  notify: Restart systemd-journal-upload
+  when:
+    - journal_upload_enabled | bool and journal_upload_push_url.startswith('https://')
+    - homeserver_ca_result is defined and homeserver_ca_result is changed
 
 - name: Log-Endpunkt per /etc/hosts aufloesen (unabhaengig von DNS)
   ansible.builtin.lineinfile:
@@ -145,4 +150,7 @@
     enabled: false
     state: stopped
   when: not (journal_upload_enabled | bool)
-  failed_when: false
+  register: journal_upload_deaktivieren_result
+  failed_when:
+    - journal_upload_deaktivieren_result is failed
+    - "'Could not find' not in (journal_upload_deaktivieren_result.msg | default(''))"

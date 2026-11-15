@@ -54,7 +54,10 @@
     name: nightly-worker-wake.timer
     enabled: false
     state: stopped
-  failed_when: false
+  register: nightly_worker_wake_deaktivieren_result
+  failed_when:
+    - nightly_worker_wake_deaktivieren_result is failed
+    - "'Could not find' not in (nightly_worker_wake_deaktivieren_result.msg | default(''))"
 
 - name: Alte Timer-Unit-Datei entfernen (Rest einer älteren Rollen-Version)
   ansible.builtin.file:
