@@ -1,6 +1,6 @@
 ---
 
-- name: List existing schedules in project {{ project_spec.name }}
+- name: vorhandene schedules im projekt {{ project_spec.name }} auflisten
   ansible.builtin.uri:
     url: "{{ semaphore_api_base }}/api/project/{{ project_id }}/schedules"
     method: GET
@@ -9,14 +9,14 @@
     return_content: true
   register: sem_sched_existing
 
-- name: Decide if schedule '{{ schedule_spec.name }}' exists
+- name: feststellen ob schedule '{{ schedule_spec.name }}' existiert
   ansible.builtin.set_fact:
     schedule_exists: >-
       {{ (sem_sched_existing.json
           | selectattr('name', 'equalto', schedule_spec.name)
           | list | length) > 0 }}
 
-- name: Find existing schedule id for '{{ schedule_spec.name }}'
+- name: id des vorhandenen schedules '{{ schedule_spec.name }}' ermitteln
   ansible.builtin.set_fact:
     schedule_id: >-
       {{ (sem_sched_existing.json
@@ -24,7 +24,7 @@
            | list | first | default({})).id | default(none) }}
   when: schedule_exists
 
-- name: Assert template '{{ schedule_spec.template }}' exists for schedule '{{ schedule_spec.name }}'
+- name: sicherstellen dass template '{{ schedule_spec.template }}' für schedule '{{ schedule_spec.name }}' existiert
   ansible.builtin.assert:
     that: "schedule_spec.template in project_template_map"
     fail_msg: >-
@@ -32,7 +32,7 @@
       '{{ schedule_spec.template }}' in project '{{ project_spec.name }}'.
       Available templates: {{ project_template_map.keys() | list }}.
 
-- name: Create schedule '{{ schedule_spec.name }}'
+- name: schedule '{{ schedule_spec.name }}' anlegen
   ansible.builtin.uri:
     url: "{{ semaphore_api_base }}/api/project/{{ project_id }}/schedules"
     method: POST
@@ -52,7 +52,7 @@
     status_code: [200, 201, 204]
   when: not schedule_exists
 
-- name: Update schedule '{{ schedule_spec.name }}'
+- name: schedule '{{ schedule_spec.name }}' aktualisieren
   ansible.builtin.uri:
     url: "{{ semaphore_api_base }}/api/project/{{ project_id }}/schedules/{{ schedule_id | int }}"
     method: PUT

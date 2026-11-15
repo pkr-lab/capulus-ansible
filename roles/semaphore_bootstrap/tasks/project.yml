@@ -1,6 +1,6 @@
 ---
 
-- name: List existing projects for {{ project_spec.name }}
+- name: vorhandene projekte für {{ project_spec.name }} auflisten
   ansible.builtin.uri:
     url: "{{ semaphore_api_base }}/api/projects"
     method: GET
@@ -9,14 +9,14 @@
     return_content: true
   register: sem_projects_list
 
-- name: Find project id for {{ project_spec.name }}
+- name: projekt-id für {{ project_spec.name }} ermitteln
   ansible.builtin.set_fact:
     project_id: >-
       {{ (sem_projects_list.json
            | selectattr('name', 'equalto', project_spec.name)
            | list | first | default({})).id | default(none) }}
 
-- name: Create project {{ project_spec.name }}
+- name: projekt {{ project_spec.name }} anlegen
   ansible.builtin.uri:
     url: "{{ semaphore_api_base }}/api/projects"
     method: POST
@@ -33,21 +33,21 @@
   register: sem_project_create
   when: project_id in [none, "None", ""]
 
-- name: Capture new project id for {{ project_spec.name }}
+- name: neue projekt-id für {{ project_spec.name }} übernehmen
   ansible.builtin.set_fact:
     project_id: "{{ sem_project_create.json.id }}"
   when:
     - project_id in [none, "None", ""]
     - sem_project_create is not skipped
 
-- name: Provision default access keys in project {{ project_spec.name }}
+- name: standard-zugangsschlüssel im projekt {{ project_spec.name }} einrichten
   ansible.builtin.include_tasks: key.yml
   loop: "{{ semaphore_default_keys }}"
   loop_control:
     loop_var: key_spec
     label: "{{ key_spec.name }}"
 
-- name: Re-list keys in project {{ project_spec.name }}
+- name: keys im projekt {{ project_spec.name }} erneut auflisten
   ansible.builtin.uri:
     url: "{{ semaphore_api_base }}/api/project/{{ project_id }}/keys"
     method: GET
@@ -56,23 +56,23 @@
     return_content: true
   register: sem_keys_list
 
-- name: Build key name→id map for project {{ project_spec.name }}
+- name: zuordnung key-name→id für das projekt {{ project_spec.name }} bilden
   ansible.builtin.set_fact:
     project_key_map: >-
       {{ dict(sem_keys_list.json
               | map(attribute='name') | zip(sem_keys_list.json | map(attribute='id'))) }}
 
-- name: Provision repository for project {{ project_spec.name }}
+- name: repository für das projekt {{ project_spec.name }} einrichten
   ansible.builtin.include_tasks: repository.yml
 
-- name: Provision inventories for project {{ project_spec.name }}
+- name: inventories für das projekt {{ project_spec.name }} einrichten
   ansible.builtin.include_tasks: inventory.yml
   loop: "{{ project_spec.inventories }}"
   loop_control:
     loop_var: inventory_spec
     label: "{{ inventory_spec.name }}"
 
-- name: Re-list inventories in project {{ project_spec.name }}
+- name: inventories im projekt {{ project_spec.name }} erneut auflisten
   ansible.builtin.uri:
     url: "{{ semaphore_api_base }}/api/project/{{ project_id }}/inventory"
     method: GET
@@ -81,20 +81,20 @@
     return_content: true
   register: sem_inv_list
 
-- name: Build inventory name→id map for project {{ project_spec.name }}
+- name: zuordnung inventory-name→id für das projekt {{ project_spec.name }} bilden
   ansible.builtin.set_fact:
     project_inventory_map: >-
       {{ dict(sem_inv_list.json
               | map(attribute='name') | zip(sem_inv_list.json | map(attribute='id'))) }}
 
-- name: Provision environments for project {{ project_spec.name }}
+- name: environments für das projekt {{ project_spec.name }} einrichten
   ansible.builtin.include_tasks: environment.yml
   loop: "{{ project_spec.environments | default([]) }}"
   loop_control:
     loop_var: env_spec
     label: "{{ env_spec.name }}"
 
-- name: Re-list environments in project {{ project_spec.name }}
+- name: environments im projekt {{ project_spec.name }} erneut auflisten
   ansible.builtin.uri:
     url: "{{ semaphore_api_base }}/api/project/{{ project_id }}/environment"
     method: GET
@@ -103,20 +103,20 @@
     return_content: true
   register: sem_env_list
 
-- name: Build environment name→id map for project {{ project_spec.name }}
+- name: zuordnung environment-name→id für das projekt {{ project_spec.name }} bilden
   ansible.builtin.set_fact:
     project_environment_map: >-
       {{ dict(sem_env_list.json
               | map(attribute='name') | zip(sem_env_list.json | map(attribute='id'))) }}
 
-- name: Provision templates for project {{ project_spec.name }}
+- name: templates für das projekt {{ project_spec.name }} einrichten
   ansible.builtin.include_tasks: template.yml
   loop: "{{ project_spec.templates }}"
   loop_control:
     loop_var: template_spec
     label: "{{ template_spec.name }}"
 
-- name: Re-list templates in project {{ project_spec.name }}
+- name: templates im projekt {{ project_spec.name }} erneut auflisten
   ansible.builtin.uri:
     url: "{{ semaphore_api_base }}/api/project/{{ project_id }}/templates"
     method: GET
@@ -125,13 +125,13 @@
     return_content: true
   register: sem_tpl_list
 
-- name: Build template name→id map for project {{ project_spec.name }}
+- name: zuordnung template-name→id für das projekt {{ project_spec.name }} bilden
   ansible.builtin.set_fact:
     project_template_map: >-
       {{ dict(sem_tpl_list.json
               | map(attribute='name') | zip(sem_tpl_list.json | map(attribute='id'))) }}
 
-- name: Provision schedules for project {{ project_spec.name }}
+- name: schedules für das projekt {{ project_spec.name }} einrichten
   ansible.builtin.include_tasks: schedule.yml
   loop: "{{ project_spec.schedules | default([]) }}"
   loop_control:

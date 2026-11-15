@@ -1,6 +1,6 @@
 ---
 
-- name: List existing repositories in project {{ project_spec.name }}
+- name: vorhandene repositories im projekt {{ project_spec.name }} auflisten
   ansible.builtin.uri:
     url: "{{ semaphore_api_base }}/api/project/{{ project_id }}/repositories"
     method: GET
@@ -9,14 +9,14 @@
     return_content: true
   register: sem_repos
 
-- name: Find repository id in project {{ project_spec.name }}
+- name: repository-id im projekt {{ project_spec.name }} ermitteln
   ansible.builtin.set_fact:
     repository_id: >-
       {{ (sem_repos.json
            | selectattr('name', 'equalto', project_spec.repository.name)
            | list | first | default({})).id | default(none) }}
 
-- name: Assert git-none key exists in project {{ project_spec.name }}
+- name: sicherstellen dass der key git-none im projekt {{ project_spec.name }} existiert
   ansible.builtin.assert:
     that: "'git-none' in project_key_map"
     fail_msg: >-
@@ -24,7 +24,7 @@
       '{{ project_spec.name }}'. Available keys: {{ project_key_map.keys() | list }}.
       Ensure 'git-none' is listed in semaphore_default_keys.
 
-- name: Create repository in project {{ project_spec.name }}
+- name: repository im projekt {{ project_spec.name }} anlegen
   ansible.builtin.uri:
     url: "{{ semaphore_api_base }}/api/project/{{ project_id }}/repositories"
     method: POST
@@ -46,21 +46,21 @@
   register: sem_repo_create
   when: repository_id in [none, "None", ""]
 
-- name: Capture new repository id for project {{ project_spec.name }}
+- name: neue repository-id für das projekt {{ project_spec.name }} übernehmen
   ansible.builtin.set_fact:
     repository_id: "{{ sem_repo_create.json.id }}"
   when:
     - repository_id in [none, "None", ""]
     - sem_repo_create is not skipped
 
-- name: Find current repository settings in project {{ project_spec.name }}
+- name: aktuelle repository-einstellungen im projekt {{ project_spec.name }} ermitteln
   ansible.builtin.set_fact:
     repository_current: >-
       {{ sem_repos.json
          | selectattr('name', 'equalto', project_spec.repository.name)
          | list | first | default({}) }}
 
-- name: Update repository in project {{ project_spec.name }}
+- name: repository im projekt {{ project_spec.name }} aktualisieren
   ansible.builtin.uri:
     url: "{{ semaphore_api_base }}/api/project/{{ project_id }}/repositories/{{ repository_id | int }}"
     method: PUT

@@ -6,12 +6,12 @@
     state: "{{ 'latest' if auto_upgrade | bool else 'present' }}"
     update_cache: true
 
-- name: Set system hostname
+- name: hostnamen setzen
   ansible.builtin.hostname:
     name: "{{ k3s_agent_hostname }}"
     use: systemd
 
-- name: Update /etc/hosts with new hostname
+- name: neuen hostnamen in /etc/hosts eintragen
   ansible.builtin.lineinfile:
     path: /etc/hosts
     regexp: '^127\.0\.1\.1'

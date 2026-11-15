@@ -1,10 +1,10 @@
 ---
-- name: System-dnsmasq nach Snippet-Entschaerfung neu starten
+- name: system-dnsmasq nach snippet-entschärfung neu starten
   ansible.builtin.systemd:
     name: dnsmasq
     state: restarted
   failed_when: false
 
-- name: systemd nach libvirt-guests-Drop-in neu laden
+- name: systemd nach libvirt-guests-drop-in neu laden
   ansible.builtin.systemd:
     daemon_reload: true

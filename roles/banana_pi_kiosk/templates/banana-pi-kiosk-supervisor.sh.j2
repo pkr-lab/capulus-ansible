@@ -75,7 +75,7 @@ while true; do
   fi
 
   if [ -n "${chromium_pid}" ] && ! kill -0 "${chromium_pid}" 2>/dev/null; then
-    logger -t banana-pi-kiosk "chromium (${current_mode}) abgestuerzt, starte neu"
+    logger -t banana-pi-kiosk "chromium (${current_mode}) abgestürzt, starte neu"
     if [ "${current_mode}" = "fallback" ]; then
       start_chromium "${FALLBACK_URL}"
     else
