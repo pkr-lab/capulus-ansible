@@ -1,5 +1,5 @@
 ---
-- name: Restart k3s-agent
+- name: k3s-agent neu starten
   ansible.builtin.systemd:
     name: k3s-agent
     state: restarted

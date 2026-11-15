@@ -1,14 +1,14 @@
 ---
-- name: systemd nach dnsmasq-Drop-in neu laden
+- name: systemd nach dnsmasq-drop-in neu laden
   ansible.builtin.systemd:
     daemon_reload: true
 
-- name: Restart dnsmasq
+- name: dnsmasq neu starten
   ansible.builtin.systemd:
     name: dnsmasq
     state: restarted
 
-- name: Restart systemd-resolved
+- name: systemd-resolved neu starten
   ansible.builtin.systemd:
     name: systemd-resolved
     state: restarted

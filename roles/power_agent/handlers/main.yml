@@ -1,5 +1,5 @@
 ---
-- name: Restart power agent
+- name: power-agent neu starten
   ansible.builtin.systemd:
     name: power-agent
     daemon_reload: true

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-ALIAS="${1:?Usage: banana-pi-wol.sh <alias> (verfuegbar: {{ banana_pi_kiosk_wol_devices.keys() | join(', ') }})}"
+ALIAS="${1:?Usage: banana-pi-wol.sh <alias> (verfügbar: {{ banana_pi_kiosk_wol_devices.keys() | join(', ') }})}"
 
 declare -A DEVICES=(
 {% for alias, mac in banana_pi_kiosk_wol_devices.items() %}
@@ -11,7 +11,7 @@ declare -A DEVICES=(
 
 MAC="${DEVICES[$ALIAS]:-}"
 if [ -z "$MAC" ]; then
-  echo "Unbekannter Alias '${ALIAS}'. Verfuegbar: ${!DEVICES[*]}" >&2
+  echo "Unbekannter Alias '${ALIAS}'. Verfügbar: ${!DEVICES[*]}" >&2
   exit 1
 fi
 

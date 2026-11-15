@@ -1,10 +1,10 @@
 ---
-- name: Start-Limit des Dienstes zuruecksetzen (nach Endlos-Fehlschlaegen)
+- name: start-limit des dienstes zurücksetzen (nach endlos-fehlschlägen)
   ansible.builtin.command: systemctl reset-failed systemd-journal-upload.service
   changed_when: false
   failed_when: false
 
-- name: Restart systemd-journal-upload
+- name: systemd-journal-upload neu starten
   ansible.builtin.systemd:
     name: systemd-journal-upload.service
     daemon_reload: true

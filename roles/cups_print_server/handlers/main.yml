@@ -1,5 +1,5 @@
 ---
-- name: Restart cups
+- name: cups neu starten
   ansible.builtin.systemd:
     name: cups
     state: restarted

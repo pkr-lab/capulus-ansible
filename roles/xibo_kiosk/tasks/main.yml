@@ -55,7 +55,7 @@
         - /etc/systemd/system/xibosignage-manifest.service
         - /usr/local/bin/xibosignage-manifest.sh
         - "{{ xibo_kiosk_web_root }}/manifest.json"
-      notify: Reload systemd
+      notify: systemd für xibo-kiosk neu laden
 
 - name: xibosignage-display ggf. aushängen
   ansible.posix.mount:
@@ -81,7 +81,7 @@
     opts: "ro,soft,timeo=30,retrans=2,noauto,nofail,_netdev"
     state: present
   when: xibo_kiosk_enabled | bool
-  notify: Reload systemd
+  notify: systemd für xibo-kiosk neu laden
 
 - name: Webroot für Slideshow anlegen
   ansible.builtin.file:
@@ -171,7 +171,7 @@
     - xibosignage-sync.service
     - xibosignage-sync.timer
   when: xibo_kiosk_enabled | bool
-  notify: Restart xibosignage sync timer
+  notify: sync-timer von xibosignage neu starten
 
 - name: EDID-Erzwingung pruefen
   ansible.builtin.assert:
@@ -218,7 +218,7 @@
           | regex_replace('\s*drm\.edid_firmware=\S+', ''))
          + ' drm.edid_firmware=' + xibo_kiosk_edid_connector + ':edid/' + xibo_kiosk_edid_filename }}
   when: xibo_kiosk_enabled | bool and xibo_kiosk_edid_force | bool
-  notify: Hinweis auf noetigen Reboot nach EDID-Erzwingung
+  notify: hinweis auf nötigen reboot nach edid-erzwingung
 
 - name: Bildschirmmodus-Skript deployen
   ansible.builtin.template:
@@ -259,7 +259,7 @@
     group: root
     mode: "0644"
   when: xibo_kiosk_enabled | bool
-  notify: Reload systemd
+  notify: systemd für xibo-kiosk neu laden
 
 - name: Eindeutig unkritische Dienste deaktivieren
   ansible.builtin.systemd:
@@ -303,7 +303,7 @@
       ansible.builtin.file:
         path: /etc/systemd/system/getty@tty1.service.d/autologin.conf
         state: absent
-      notify: Reload systemd
+      notify: systemd für xibo-kiosk neu laden
 
     - name: X11-Start aus .profile des Kiosk-Users entfernen
       ansible.builtin.blockinfile:
@@ -321,7 +321,7 @@
       loop:
         - xibosignage-xorg.service
         - xibosignage-kiosk.service
-      notify: Reload systemd
+      notify: systemd für xibo-kiosk neu laden
 
     - name: X11- und Kiosk-Service für den nächsten Boot aktivieren
       ansible.builtin.systemd:
@@ -356,7 +356,7 @@
       loop:
         - xibosignage-kiosk.service
         - xibosignage-xorg.service
-      notify: Reload systemd
+      notify: systemd für xibo-kiosk neu laden
 
     - name: Verzeichnis für getty@tty1-Drop-in anlegen
       ansible.builtin.file:
@@ -373,7 +373,7 @@
         owner: root
         group: root
         mode: "0644"
-      notify: Reload systemd
+      notify: systemd für xibo-kiosk neu laden
 
     - name: X11-Start in .profile des Kiosk-Users eintragen
       ansible.builtin.blockinfile:
