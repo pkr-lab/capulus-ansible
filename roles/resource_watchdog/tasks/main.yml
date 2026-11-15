@@ -1,6 +1,6 @@
 ---
 
-- name: Deploy resource watchdog script
+- name: resource-watchdog-skript ablegen
   ansible.builtin.copy:
     src: resource-watchdog.sh
     dest: /usr/local/bin/resource-watchdog.sh
@@ -8,9 +8,9 @@
     group: root
     mode: "0755"
   when: resource_watchdog_enabled | bool
-  notify: Restart resource watchdogs
+  notify: resource-watchdogs neu starten
 
-- name: Ensure resource watchdog config directory exists
+- name: sicherstellen dass das konfigurationsverzeichnis des resource-watchdogs existiert
   ansible.builtin.file:
     path: /etc/resource-watchdog
     state: directory
@@ -19,7 +19,7 @@
     mode: "0755"
   when: resource_watchdog_enabled | bool
 
-- name: Deploy per-metric environment files
+- name: umgebungsdateien je metrik ablegen
   ansible.builtin.template:
     src: instance.env.j2
     dest: "/etc/resource-watchdog/{{ item.name }}.env"
@@ -30,9 +30,9 @@
   loop_control:
     label: "{{ item.name }}"
   when: resource_watchdog_enabled | bool
-  notify: Restart resource watchdogs
+  notify: resource-watchdogs neu starten
 
-- name: Deploy resource watchdog systemd template unit
+- name: systemd-template-unit des resource-watchdogs ablegen
   ansible.builtin.template:
     src: "resource-watchdog@.service.j2"
     dest: /etc/systemd/system/resource-watchdog@.service
@@ -40,9 +40,9 @@
     group: root
     mode: "0644"
   when: resource_watchdog_enabled | bool
-  notify: Restart resource watchdogs
+  notify: resource-watchdogs neu starten
 
-- name: Enable and start resource watchdog instances
+- name: resource-watchdog-instanzen aktivieren und starten
   ansible.builtin.systemd:
     name: "resource-watchdog@{{ item.name }}"
     daemon_reload: true
@@ -53,7 +53,7 @@
     label: "{{ item.name }}"
   when: resource_watchdog_enabled | bool
 
-- name: Disable resource watchdog instances if turned off via resource_watchdog_enabled
+- name: resource-watchdog-instanzen deaktivieren, wenn resource_watchdog_enabled aus ist
   ansible.builtin.systemd:
     name: "resource-watchdog@{{ item.name }}"
     enabled: false

@@ -1,5 +1,5 @@
 ---
-- name: Restart thermal-watchdog
+- name: thermal-watchdog neu starten
   ansible.builtin.systemd:
     name: thermal-watchdog
     daemon_reload: true

@@ -1,6 +1,6 @@
 ---
 
-- name: List existing keys in project {{ project_spec.name }}
+- name: vorhandene keys im projekt {{ project_spec.name }} auflisten
   ansible.builtin.uri:
     url: "{{ semaphore_api_base }}/api/project/{{ project_id }}/keys"
     method: GET
@@ -9,14 +9,14 @@
     return_content: true
   register: sem_keys_existing
 
-- name: Decide if key exists in project {{ project_spec.name }}
+- name: feststellen ob der key im projekt {{ project_spec.name }} existiert
   ansible.builtin.set_fact:
     key_exists: >-
       {{ (sem_keys_existing.json
           | selectattr('name', 'equalto', key_spec.name)
           | list | length) > 0 }}
 
-- name: Read Semaphore SSH private key from disk
+- name: privaten ssh-schlüssel von semaphore von der platte lesen
   ansible.builtin.slurp:
     src: "{{ semaphore_ssh_private_key_path }}"
   register: sem_ssh_priv_slurp
@@ -24,7 +24,7 @@
   when:
     - key_spec.type == "ssh"
 
-- name: Create SSH access key in project {{ project_spec.name }}
+- name: ssh-zugangsschlüssel im projekt {{ project_spec.name }} anlegen
   ansible.builtin.uri:
     url: "{{ semaphore_api_base }}/api/project/{{ project_id }}/keys"
     method: POST
@@ -46,7 +46,7 @@
     - not key_exists
     - key_spec.type == "ssh"
 
-- name: Fail with visible HTTP details if SSH key creation failed
+- name: mit sichtbaren http-details abbrechen, wenn das anlegen des ssh-schlüssels fehlschlug
   ansible.builtin.fail:
     msg: >-
       SSH key creation returned HTTP {{ sem_key_create.status }}:
@@ -57,7 +57,7 @@
     - sem_key_create is not skipped
     - sem_key_create.status not in [200, 201, 204]
 
-- name: Find existing ssh key id for {{ key_spec.name }}
+- name: id des vorhandenen ssh-schlüssels {{ key_spec.name }} ermitteln
   ansible.builtin.set_fact:
     _existing_ssh_key_id: >-
       {{ (sem_keys_existing.json
@@ -67,7 +67,7 @@
     - key_exists
     - key_spec.type == "ssh"
 
-- name: Update SSH key {{ key_spec.name }} in project {{ project_spec.name }}
+- name: ssh-schlüssel {{ key_spec.name }} im projekt {{ project_spec.name }} aktualisieren
   ansible.builtin.uri:
     url: "{{ semaphore_api_base }}/api/project/{{ project_id }}/keys/{{ _existing_ssh_key_id }}"
     method: PUT
@@ -89,7 +89,7 @@
     - key_exists
     - key_spec.type == "ssh"
 
-- name: Create None access key in project {{ project_spec.name }}
+- name: zugangsschlüssel vom typ none im projekt {{ project_spec.name }} anlegen
   ansible.builtin.uri:
     url: "{{ semaphore_api_base }}/api/project/{{ project_id }}/keys"
     method: POST
@@ -104,7 +104,7 @@
     - not key_exists
     - key_spec.type == "none"
 
-- name: Create login_password key in project {{ project_spec.name }}
+- name: schlüssel vom typ login_password im projekt {{ project_spec.name }} anlegen
   ansible.builtin.uri:
     url: "{{ semaphore_api_base }}/api/project/{{ project_id }}/keys"
     method: POST
@@ -124,7 +124,7 @@
     - not key_exists
     - key_spec.type == "login_password"
 
-- name: Fail with HTTP details if vault key creation failed
+- name: mit http-details abbrechen, wenn das anlegen des vault-schlüssels fehlschlug
   ansible.builtin.fail:
     msg: >-
       Vault key creation returned HTTP {{ sem_vaultkey_create.status }}:
@@ -135,7 +135,7 @@
     - sem_vaultkey_create is not skipped
     - sem_vaultkey_create.status not in [200, 201, 204]
 
-- name: Find existing login_password key id for {{ key_spec.name }}
+- name: id des vorhandenen login_password-schlüssels {{ key_spec.name }} ermitteln
   ansible.builtin.set_fact:
     _existing_key_id: >-
       {{ (sem_keys_existing.json
@@ -145,7 +145,7 @@
     - key_exists
     - key_spec.type == "login_password"
 
-- name: Update login_password key {{ key_spec.name }} in project {{ project_spec.name }}
+- name: login_password-schlüssel {{ key_spec.name }} im projekt {{ project_spec.name }} aktualisieren
   ansible.builtin.uri:
     url: "{{ semaphore_api_base }}/api/project/{{ project_id }}/keys/{{ _existing_key_id }}"
     method: PUT

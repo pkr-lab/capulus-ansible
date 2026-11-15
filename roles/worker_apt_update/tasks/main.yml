@@ -10,7 +10,7 @@
         owner: root
         group: root
         mode: '0600'
-      notify: Netplan-Konfiguration anwenden
+      notify: netplan-konfiguration anwenden
 
     - name: Handler sofort ausfuehren (DNS muss vor dem apt-Update unten stehen)
       ansible.builtin.meta: flush_handlers

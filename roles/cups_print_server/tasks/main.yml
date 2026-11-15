@@ -74,7 +74,7 @@
   failed_when: false
   when: cups_print_server_enabled | bool
 
-- name: "TLS-Zertifikat fuer cupsd mit allen bekannten Selbst-Identifikationsnamen erzeugen (siehe https://github.com/pkr-lab/pkr-lab-docs/blob/main/capulus-ansible/2-betrieb-hardware/20040-printer.md)"
+- name: "TLS-Zertifikat für cupsd mit allen bekannten Selbst-Identifikationsnamen erzeugen (siehe https://github.com/pkr-lab/pkr-lab-docs/blob/main/capulus-ansible/2-betrieb-hardware/20040-printer.md)"
   when:
     - cups_print_server_enabled | bool
     - >-
@@ -83,13 +83,13 @@
          | reject('in', cups_print_server_current_cert_sans.stdout)
          | list | length > 0
   block:
-    - name: temporaeres verzeichnis fuer das schluesselpaar anlegen
+    - name: temporäres verzeichnis für das schlüsselpaar anlegen
       ansible.builtin.tempfile:
         state: directory
         suffix: cups-tls
       register: cups_print_server_tls_tmpdir
 
-    - name: Temporaeres Schluessel-/Zertifikatspaar generieren
+    - name: Temporäres Schlüssel-/Zertifikatspaar generieren
       ansible.builtin.command:
         argv:
           - openssl
@@ -119,7 +119,7 @@
         group: root
         mode: "0644"
       loop: "{{ cups_print_server_tls_names }}"
-      notify: Restart cups
+      notify: cups neu starten
 
     - name: Key unter allen Selbst-Identifikationsnamen ablegen
       ansible.builtin.copy:
@@ -130,16 +130,16 @@
         group: root
         mode: "0600"
       loop: "{{ cups_print_server_tls_names }}"
-      notify: Restart cups
+      notify: cups neu starten
 
   always:
-    - name: Temporaere Zertifikatsdateien entfernen
+    - name: Temporäre Zertifikatsdateien entfernen
       ansible.builtin.file:
         path: "{{ cups_print_server_tls_tmpdir.path }}"
         state: absent
       when: cups_print_server_tls_tmpdir.path is defined
 
-- name: bestehende tls-schluessel auf modus 0600 setzen
+- name: bestehende tls-schlüssel auf modus 0600 setzen
   ansible.builtin.file:
     path: "/etc/cups/ssl/{{ item }}.key"
     owner: root
@@ -235,7 +235,7 @@
     chdir: "{{ cups_print_server_qpdl_build_dir }}/splix"
   register: cups_print_server_qpdl_install
   changed_when: true
-  notify: Restart cups
+  notify: cups neu starten
   when:
     - cups_print_server_enabled | bool
     - cups_print_server_build_qpdl_driver | bool
