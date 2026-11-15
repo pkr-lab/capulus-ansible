@@ -12,6 +12,10 @@
     dest: /usr/share/keyrings/tailscale-archive-keyring.gpg
     mode: '0644'
     force: false
+  register: tailscale_key_download
+  retries: 5
+  delay: 10
+  until: tailscale_key_download is succeeded
 
 - name: Check whether the Tailscale keyring exists
   ansible.builtin.stat:
@@ -65,12 +69,20 @@
     filename: tailscale
     state: present
     update_cache: true
+  register: tailscale_apt_repository
+  retries: 5
+  delay: 10
+  until: tailscale_apt_repository is succeeded
 
 - name: Install (or upgrade) tailscale package
   ansible.builtin.apt:
     name: tailscale
     state: "{{ 'latest' if auto_upgrade | bool else 'present' }}"
     update_cache: true
+  register: tailscale_package_install
+  retries: 5
+  delay: 10
+  until: tailscale_package_install is succeeded
 
 - name: Enable and start tailscaled service
   ansible.builtin.systemd:
