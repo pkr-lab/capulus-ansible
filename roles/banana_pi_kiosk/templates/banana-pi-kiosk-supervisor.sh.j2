@@ -5,7 +5,7 @@ set -uo pipefail
 BASE_URL="{{ banana_pi_kiosk_base_url }}"
 STATION="{{ banana_pi_kiosk_station }}"
 NORMAL_URL="${BASE_URL}/start?station=${STATION}"
-FALLBACK_URL="{{ banana_pi_kiosk_fallback_url }}"
+. /etc/banana-pi-kiosk/supervisor.env
 POLL_SECONDS={{ banana_pi_kiosk_failover_poll_seconds }}
 FAIL_THRESHOLD={{ banana_pi_kiosk_failover_fail_threshold }}
 RECOVER_THRESHOLD={{ banana_pi_kiosk_failover_recover_threshold }}

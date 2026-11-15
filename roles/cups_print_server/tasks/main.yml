@@ -83,6 +83,12 @@
          | reject('in', cups_print_server_current_cert_sans.stdout)
          | list | length > 0
   block:
+    - name: temporaeres verzeichnis fuer das schluesselpaar anlegen
+      ansible.builtin.tempfile:
+        state: directory
+        suffix: cups-tls
+      register: cups_print_server_tls_tmpdir
+
     - name: Temporaeres Schluessel-/Zertifikatspaar generieren
       ansible.builtin.command:
         argv:
@@ -95,9 +101,9 @@
           - -days
           - "3650"
           - -keyout
-          - /tmp/cups-print-server-tls.key
+          - "{{ cups_print_server_tls_tmpdir.path }}/tls.key"
           - -out
-          - /tmp/cups-print-server-tls.crt
+          - "{{ cups_print_server_tls_tmpdir.path }}/tls.crt"
           - -subj
           - "/C=US/CN={{ cups_print_server_tls_names[0] }}/O={{ cups_print_server_tls_names[0] }}"
           - -addext
@@ -107,7 +113,7 @@
     - name: Zertifikat unter allen Selbst-Identifikationsnamen ablegen
       ansible.builtin.copy:
         remote_src: true
-        src: /tmp/cups-print-server-tls.crt
+        src: "{{ cups_print_server_tls_tmpdir.path }}/tls.crt"
         dest: "/etc/cups/ssl/{{ item }}.crt"
         owner: root
         group: root
@@ -118,21 +124,30 @@
     - name: Key unter allen Selbst-Identifikationsnamen ablegen
       ansible.builtin.copy:
         remote_src: true
-        src: /tmp/cups-print-server-tls.key
+        src: "{{ cups_print_server_tls_tmpdir.path }}/tls.key"
         dest: "/etc/cups/ssl/{{ item }}.key"
         owner: root
         group: root
-        mode: "0644"
+        mode: "0600"
       loop: "{{ cups_print_server_tls_names }}"
       notify: Restart cups
 
+  always:
     - name: Temporaere Zertifikatsdateien entfernen
       ansible.builtin.file:
-        path: "{{ item }}"
+        path: "{{ cups_print_server_tls_tmpdir.path }}"
         state: absent
-      loop:
-        - /tmp/cups-print-server-tls.key
-        - /tmp/cups-print-server-tls.crt
+      when: cups_print_server_tls_tmpdir.path is defined
+
+- name: bestehende tls-schluessel auf modus 0600 setzen
+  ansible.builtin.file:
+    path: "/etc/cups/ssl/{{ item }}.key"
+    owner: root
+    group: root
+    mode: "0600"
+  loop: "{{ cups_print_server_tls_names }}"
+  when: cups_print_server_enabled | bool
+  failed_when: false
 
 - name: Build-Abhängigkeiten für den QPDL-Treiber installieren
   ansible.builtin.apt:

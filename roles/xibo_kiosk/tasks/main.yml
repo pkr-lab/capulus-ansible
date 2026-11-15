@@ -40,7 +40,10 @@
         - xibosignage-webserver.service
         - xibosignage-manifest.timer
         - xibosignage-manifest.service
-      failed_when: false
+      register: xibo_kiosk_deaktivieren_result_0
+      failed_when:
+        - xibo_kiosk_deaktivieren_result_0 is failed
+        - "'Could not find' not in (xibo_kiosk_deaktivieren_result_0.msg | default(''))"
 
     - name: Alte Unit-Dateien und Skripte löschen
       ansible.builtin.file:
@@ -265,7 +268,10 @@
     state: stopped
   loop: "{{ xibo_kiosk_disable_services }}"
   when: xibo_kiosk_enabled | bool
-  failed_when: false
+  register: xibo_kiosk_deaktivieren_result_1
+  failed_when:
+    - xibo_kiosk_deaktivieren_result_1 is failed
+    - "'Could not find' not in (xibo_kiosk_deaktivieren_result_1.msg | default(''))"
 
 - name: Desktop-Sitzung abschalten
   when: xibo_kiosk_enabled | bool
@@ -276,7 +282,10 @@
         enabled: false
         state: stopped
         masked: true
-      failed_when: false
+      register: xibo_kiosk_deaktivieren_result_2
+      failed_when:
+        - xibo_kiosk_deaktivieren_result_2 is failed
+        - "'Could not find' not in (xibo_kiosk_deaktivieren_result_2.msg | default(''))"
 
     - name: Standard-Target auf multi-user setzen
       ansible.builtin.file:
@@ -335,7 +344,10 @@
       loop:
         - xibosignage-kiosk.service
         - xibosignage-xorg.service
-      failed_when: false
+      register: xibo_kiosk_deaktivieren_result_3
+      failed_when:
+        - xibo_kiosk_deaktivieren_result_3 is failed
+        - "'Could not find' not in (xibo_kiosk_deaktivieren_result_3.msg | default(''))"
 
     - name: X11- und Kiosk-Service-Dateien löschen
       ansible.builtin.file:
@@ -397,4 +409,7 @@
     enabled: false
     state: stopped
   when: not (xibo_kiosk_enabled | bool)
-  failed_when: false
+  register: xibo_kiosk_deaktivieren_result_4
+  failed_when:
+    - xibo_kiosk_deaktivieren_result_4 is failed
+    - "'Could not find' not in (xibo_kiosk_deaktivieren_result_4.msg | default(''))"

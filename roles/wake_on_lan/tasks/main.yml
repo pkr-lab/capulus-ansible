@@ -31,4 +31,7 @@
     enabled: false
     state: stopped
   when: not (wake_on_lan_enabled | bool)
-  failed_when: false
+  register: wake_on_lan_deaktivieren_result
+  failed_when:
+    - wake_on_lan_deaktivieren_result is failed
+    - "'Could not find' not in (wake_on_lan_deaktivieren_result.msg | default(''))"

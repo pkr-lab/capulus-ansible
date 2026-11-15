@@ -1,0 +1,57 @@
+---
+
+- name: Check for active swap devices
+  ansible.builtin.command: swapon --noheadings --show=NAME
+  register: common_active_swap
+  changed_when: false
+
+- name: Disable swap immediately
+  ansible.builtin.command: swapoff -a
+  when: common_active_swap.stdout | trim | length > 0
+  changed_when: true
+
+- name: Remove swap entries from /etc/fstab
+  ansible.builtin.replace:
+    path: /etc/fstab
+    regexp: '^([^#].*\s+swap\s+.*)$'
+    replace: '# \1'
+
+- name: Ensure swap is not re-enabled by systemd
+  ansible.builtin.systemd:
+    name: swap.target
+    enabled: false
+    state: stopped
+    masked: true
+
+- name: Create modules-load.d config for k3s/Kubernetes
+  ansible.builtin.copy:
+    dest: /etc/modules-load.d/k3s.conf
+    content: |
+      br_netfilter
+      overlay
+    mode: '0644'
+
+- name: Load required kernel modules for k3s/Kubernetes
+  community.general.modprobe:
+    name: "{{ item }}"
+    state: present
+  loop:
+    - br_netfilter
+    - overlay
+
+- name: Configure sysctl parameters for Kubernetes
+  ansible.posix.sysctl:
+    name: "{{ item.key }}"
+    value: "{{ item.value }}"
+    sysctl_file: /etc/sysctl.d/99-k3s.conf
+    reload: true
+    state: present
+  loop:
+    - {key: "net.ipv4.ip_forward", value: "1"}
+    - {key: "net.bridge.bridge-nf-call-iptables", value: "1"}
+    - {key: "net.bridge.bridge-nf-call-ip6tables", value: "1"}
+    - {key: "net.ipv6.conf.all.forwarding", value: "1"}
+    - {key: "fs.inotify.max_user_watches", value: "524288"}
+    - {key: "fs.inotify.max_user_instances", value: "512"}
+    - {key: "vm.swappiness", value: "0"}
+  notify: Reload sysctl

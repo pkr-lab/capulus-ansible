@@ -23,4 +23,7 @@
     enabled: false
     state: stopped
   when: not (smartctl_exporter_enabled | bool)
-  failed_when: false
+  register: smartctl_exporter_deaktivieren_result
+  failed_when:
+    - smartctl_exporter_deaktivieren_result is failed
+    - "'Could not find' not in (smartctl_exporter_deaktivieren_result.msg | default(''))"
