@@ -1,6 +1,6 @@
 ---
 
-- name: Allow kubelet API (port 10250) from k3s server
+- name: kubelet-api (port 10250) vom k3s-server erlauben
   community.general.ufw:
     rule: allow
     port: "10250"
@@ -26,13 +26,13 @@
     - {port: "8472", proto: udp}
     - {port: "6443", proto: tcp}
 
-- name: Allow all traffic from k3s pod CIDR
+- name: gesamten verkehr aus dem pod-cidr von k3s erlauben
   community.general.ufw:
     rule: allow
     src: "{{ k3s_pod_cidr }}"
     comment: "k3s pod CIDR traffic"
 
-- name: Allow all traffic from k3s service CIDR
+- name: gesamten verkehr aus dem service-cidr von k3s erlauben
   community.general.ufw:
     rule: allow
     src: "{{ k3s_service_cidr }}"

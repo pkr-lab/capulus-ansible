@@ -79,7 +79,7 @@
     mode: "0640"
   no_log: true
   when: vmagent_enabled | bool and vmagent_remote_write_basic_auth_password | length > 0
-  notify: Restart vmagent
+  notify: vmagent neu starten
 
 - name: Scrape-Konfiguration deployen
   ansible.builtin.template:
@@ -89,7 +89,7 @@
     group: root
     mode: "0644"
   when: vmagent_enabled | bool
-  notify: Restart vmagent
+  notify: vmagent neu starten
 
 - name: vmagent-systemd-Service deployen
   ansible.builtin.template:
@@ -99,7 +99,7 @@
     group: root
     mode: "0644"
   when: vmagent_enabled | bool
-  notify: Restart vmagent
+  notify: vmagent neu starten
 
 - name: vmagent aktivieren und starten
   ansible.builtin.systemd:

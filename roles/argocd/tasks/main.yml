@@ -1,6 +1,6 @@
 ---
 
-- name: Create argocd namespace (idempotent)
+- name: argocd-namespace anlegen (idempotent)
   ansible.builtin.shell:
     cmd: |
       set -o pipefail
@@ -12,7 +12,7 @@
   register: argocd_ns_apply
   changed_when: "'created' in argocd_ns_apply.stdout"
 
-- name: Add Argo Helm repository
+- name: argo-helm-repository hinzufügen
   ansible.builtin.command: helm repo add argo https://argoproj.github.io/argo-helm
   register: argocd_helm_repo_add
   changed_when: '"has been added" in argocd_helm_repo_add.stdout'
@@ -22,13 +22,13 @@
   environment:
     KUBECONFIG: /etc/rancher/k3s/k3s.yaml
 
-- name: Update Helm repositories
+- name: helm-repositories aktualisieren
   ansible.builtin.command: helm repo update
   changed_when: false
   environment:
     KUBECONFIG: /etc/rancher/k3s/k3s.yaml
 
-- name: Template ArgoCD Helm values to /tmp
+- name: helm-werte für argocd nach /tmp templaten
   ansible.builtin.template:
     src: argocd-values.yaml.j2
     dest: /tmp/argocd-values.yaml
@@ -36,7 +36,7 @@
     group: root
     mode: '0644'
 
-- name: Create ingress TLS secret
+- name: tls-secret für den ingress anlegen
   ansible.builtin.shell:
     cmd: |
       set -o pipefail
@@ -57,7 +57,7 @@
   no_log: true
   when: argocd_ingress_tls_crt | length > 0
 
-- name: Install or upgrade ArgoCD via Helm
+- name: argocd per helm installieren oder aktualisieren
   ansible.builtin.command: >
     helm upgrade --install argocd argo/argo-cd
     {% if argocd_version | length > 0 %}--version {{ argocd_version }}{% endif %}
@@ -74,11 +74,11 @@
   environment:
     KUBECONFIG: /etc/rancher/k3s/k3s.yaml
 
-- name: Display Helm release status
+- name: status des helm-releases anzeigen
   ansible.builtin.debug:
     var: argocd_helm_result.stdout_lines
 
-- name: Wait for ArgoCD server deployment to be available
+- name: warten bis das argocd-server-deployment verfügbar ist
   ansible.builtin.command: >
     kubectl rollout status deployment/argocd-server
     --namespace {{ argocd_namespace }}
@@ -88,7 +88,7 @@
   register: argocd_rollout
   changed_when: false
 
-- name: Wait for all ArgoCD pods to be ready
+- name: warten bis alle argocd-pods bereit sind
   ansible.builtin.command: >
     kubectl wait --for=condition=Ready pods
     --all
@@ -100,7 +100,7 @@
   register: argocd_pods_ready
   changed_when: false
 
-- name: Check if initial admin secret exists
+- name: prüfen ob das initiale admin-secret existiert
   ansible.builtin.command: >
     kubectl get secret argocd-initial-admin-secret
     --namespace {{ argocd_namespace }}
@@ -111,7 +111,7 @@
   environment:
     KUBECONFIG: /etc/rancher/k3s/k3s.yaml
 
-- name: Get ArgoCD initial admin password
+- name: initiales argocd-admin-passwort lesen
   ansible.builtin.shell:
     cmd: |
       set -o pipefail
@@ -124,7 +124,7 @@
     KUBECONFIG: /etc/rancher/k3s/k3s.yaml
   when: argocd_secret_check.stdout | length > 0
 
-- name: Display ArgoCD initial credentials (password redacted)
+- name: initiale argocd-zugangsdaten anzeigen (passwort verborgen)
   ansible.builtin.debug:
     msg:
       - "=================================================="
@@ -141,7 +141,7 @@
       - "=================================================="
   when: not (argocd_show_initial_password | bool)
 
-- name: Display ArgoCD initial credentials (password shown)
+- name: initiale argocd-zugangsdaten anzeigen (passwort sichtbar)
   ansible.builtin.debug:
     msg:
       - "=================================================="
@@ -156,7 +156,7 @@
       - "=================================================="
   when: argocd_show_initial_password | bool
 
-- name: Template bootstrap AppProjects
+- name: bootstrap-appprojects templaten
   ansible.builtin.template:
     src: bootstrap-appprojects.yaml.j2
     dest: /tmp/argocd-bootstrap-appprojects.yaml
@@ -164,7 +164,7 @@
     group: root
     mode: '0644'
 
-- name: Apply bootstrap AppProjects
+- name: bootstrap-appprojects anwenden
   ansible.builtin.command: >
     kubectl apply -f /tmp/argocd-bootstrap-appprojects.yaml
   register: argocd_appprojects_apply
@@ -172,7 +172,7 @@
   environment:
     KUBECONFIG: /etc/rancher/k3s/k3s.yaml
 
-- name: Remove legacy platform/workloads ApplicationSets (ENTW layout)
+- name: alte applicationsets platform/workloads entfernen (entw-layout)
   ansible.builtin.command: >
     kubectl delete applicationset
     home-server-apps-platform home-server-apps-workloads
@@ -184,7 +184,7 @@
   environment:
     KUBECONFIG: /etc/rancher/k3s/k3s.yaml
 
-- name: Template bootstrap ApplicationSet
+- name: bootstrap-applicationset templaten
   ansible.builtin.template:
     src: bootstrap-applicationset.yaml.j2
     dest: /tmp/argocd-bootstrap-applicationset.yaml
@@ -192,7 +192,7 @@
     group: root
     mode: '0644'
 
-- name: Apply bootstrap ApplicationSet
+- name: bootstrap-applicationset anwenden
   ansible.builtin.command: >
     kubectl apply -f /tmp/argocd-bootstrap-applicationset.yaml
   register: argocd_appset_apply
@@ -200,7 +200,7 @@
   environment:
     KUBECONFIG: /etc/rancher/k3s/k3s.yaml
 
-- name: Remove legacy platform/workloads AppProjects (ENTW layout)
+- name: alte appprojects platform/workloads entfernen (entw-layout)
   ansible.builtin.command: >
     kubectl delete appproject platform workloads
     --namespace {{ argocd_namespace }}
@@ -214,11 +214,11 @@
   environment:
     KUBECONFIG: /etc/rancher/k3s/k3s.yaml
 
-- name: Display ApplicationSet status
+- name: status der applicationsets anzeigen
   ansible.builtin.debug:
     var: argocd_appset_apply.stdout
 
-- name: Wait for ApplicationSets to be processed
+- name: warten bis die applicationsets verarbeitet sind
   ansible.builtin.command: >
     kubectl get applicationsets home-server-apps-{{ item }}
     --namespace {{ argocd_namespace }}
@@ -234,7 +234,7 @@
   retries: 5
   delay: 10
 
-- name: List created Applications
+- name: angelegte applications auflisten
   ansible.builtin.command: >
     kubectl get applications
     --namespace {{ argocd_namespace }}
@@ -245,11 +245,11 @@
   environment:
     KUBECONFIG: /etc/rancher/k3s/k3s.yaml
 
-- name: Display Applications
+- name: applications anzeigen
   ansible.builtin.debug:
     msg: "{{ argocd_apps_list.stdout_lines | default(['No applications found yet — ArgoCD is polling Git']) }}"
 
-- name: Label platform-tier namespaces with security-tier=platform
+- name: namespaces der platform-stufe mit security-tier=platform labeln
   ansible.builtin.command: >
     kubectl label namespace {{ item }} security-tier=platform --overwrite
   loop: "{{ argocd_platform_apps }}"
@@ -261,7 +261,7 @@
   environment:
     KUBECONFIG: /etc/rancher/k3s/k3s.yaml
 
-- name: Label workloads-tier namespaces with security-tier=workload
+- name: namespaces der workloads-stufe mit security-tier=workload labeln
   ansible.builtin.command: >
     kubectl label namespace {{ item }} security-tier=workload --overwrite
   loop: "{{ argocd_workloads_apps }}"
@@ -273,7 +273,7 @@
   environment:
     KUBECONFIG: /etc/rancher/k3s/k3s.yaml
 
-- name: Get existing namespaces
+- name: vorhandene namespaces lesen
   ansible.builtin.command: >
     kubectl get namespaces -o jsonpath={.items[*].metadata.name}
   register: argocd_existing_namespaces_raw
@@ -282,12 +282,12 @@
     KUBECONFIG: /etc/rancher/k3s/k3s.yaml
   when: argocd_apply_network_policies | bool
 
-- name: Set existing namespaces fact
+- name: vorhandene namespaces als fakt setzen
   ansible.builtin.set_fact:
     argocd_existing_namespaces: "{{ argocd_existing_namespaces_raw.stdout.split() }}"
   when: argocd_apply_network_policies | bool
 
-- name: Template tier-default-ingress NetworkPolicies
+- name: networkpolicies tier-default-ingress templaten
   ansible.builtin.template:
     src: bootstrap-networkpolicies.yaml.j2
     dest: /tmp/argocd-bootstrap-networkpolicies.yaml
@@ -296,7 +296,7 @@
     mode: '0644'
   when: argocd_apply_network_policies | bool
 
-- name: Apply tier-default-ingress NetworkPolicies
+- name: networkpolicies tier-default-ingress anwenden
   ansible.builtin.command: >
     kubectl apply -f /tmp/argocd-bootstrap-networkpolicies.yaml
   register: argocd_netpol_apply
@@ -310,7 +310,7 @@
   environment:
     KUBECONFIG: /etc/rancher/k3s/k3s.yaml
 
-- name: Remove temporary Helm values file
+- name: temporäre helm-wertedatei entfernen
   ansible.builtin.file:
     path: /tmp/argocd-values.yaml
     state: absent

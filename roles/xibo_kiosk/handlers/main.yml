@@ -1,15 +1,15 @@
 ---
-- name: Reload systemd
+- name: systemd für xibo-kiosk neu laden
   ansible.builtin.systemd:
     daemon_reload: true
 
-- name: Restart xibosignage sync timer
+- name: sync-timer von xibosignage neu starten
   ansible.builtin.systemd:
     name: xibosignage-sync.timer
     daemon_reload: true
     state: restarted
 
-- name: Hinweis auf noetigen Reboot nach EDID-Erzwingung
+- name: hinweis auf nötigen reboot nach edid-erzwingung
   ansible.builtin.debug:
     msg: >-
       cmdline.txt wurde fuer die erzwungene EDID geaendert; ein Reboot des

@@ -135,7 +135,7 @@
           {%- for f in alert_caller_libre_patches + alert_caller_baresip_patches -%}
           {{ lookup('ansible.builtin.file', alert_caller_patch_dir ~ '/' ~ f) | hash('sha1') }}
           {%- endfor -%}
-      notify: Restart alert caller
+      notify: alert-caller neu starten
 
     - name: Piper in eigener venv installieren
       ansible.builtin.pip:
@@ -143,7 +143,7 @@
         virtualenv: "{{ alert_caller_piper_dir }}/venv"
         virtualenv_command: python3 -m venv
       when: not (alert_caller_static_announcement | bool)
-      notify: Restart alert caller
+      notify: alert-caller neu starten
 
     - name: Piper-Stimme laden
       ansible.builtin.command:
@@ -159,7 +159,7 @@
         group: root
         mode: "0644"
       when: alert_caller_static_announcement | bool
-      notify: Restart alert caller
+      notify: alert-caller neu starten
 
     - name: caller.py deployen
       ansible.builtin.copy:
@@ -168,7 +168,7 @@
         owner: root
         group: root
         mode: "0644"
-      notify: Restart alert caller
+      notify: alert-caller neu starten
 
     - name: baresip-Konfiguration templaten
       ansible.builtin.template:
@@ -177,7 +177,7 @@
         owner: root
         group: root
         mode: "0644"
-      notify: Restart alert caller
+      notify: alert-caller neu starten
 
     - name: Gruppe für den Lesezugriff auf das SIP-Passwort anlegen
       ansible.builtin.group:
@@ -192,7 +192,7 @@
         group: alert-caller-cfg
         mode: "0640"
       no_log: true
-      notify: Restart alert caller
+      notify: alert-caller neu starten
 
     - name: Umgebungsdatei templaten
       ansible.builtin.template:
@@ -202,7 +202,7 @@
         group: root
         mode: "0600"
       no_log: true
-      notify: Restart alert caller
+      notify: alert-caller neu starten
 
     - name: systemd-Unit deployen
       ansible.builtin.template:
@@ -211,7 +211,7 @@
         owner: root
         group: root
         mode: "0644"
-      notify: Restart alert caller
+      notify: alert-caller neu starten
 
     - name: Firewall einrichten
       when: alert_caller_manage_firewall | bool

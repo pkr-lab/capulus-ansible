@@ -1,12 +1,12 @@
 ---
 
-- name: Install lm-sensors (hwmon kernel modules / sysfs helpers)
+- name: lm-sensors installieren (hwmon-kernel-module / sysfs-hilfen)
   ansible.builtin.apt:
     name: lm-sensors
     state: present
   when: thermal_watchdog_enabled | bool
 
-- name: Deploy thermal watchdog script
+- name: thermal-watchdog-skript ablegen
   ansible.builtin.copy:
     src: thermal-watchdog.sh
     dest: /usr/local/bin/thermal-watchdog.sh
@@ -14,9 +14,9 @@
     group: root
     mode: "0755"
   when: thermal_watchdog_enabled | bool
-  notify: Restart thermal-watchdog
+  notify: thermal-watchdog neu starten
 
-- name: Deploy thermal watchdog systemd unit
+- name: systemd-unit des thermal-watchdogs ablegen
   ansible.builtin.template:
     src: thermal-watchdog.service.j2
     dest: /etc/systemd/system/thermal-watchdog.service
@@ -24,9 +24,9 @@
     group: root
     mode: "0644"
   when: thermal_watchdog_enabled | bool
-  notify: Restart thermal-watchdog
+  notify: thermal-watchdog neu starten
 
-- name: Enable and start thermal watchdog
+- name: thermal-watchdog aktivieren und starten
   ansible.builtin.systemd:
     name: thermal-watchdog
     daemon_reload: true
@@ -34,7 +34,7 @@
     state: started
   when: thermal_watchdog_enabled | bool
 
-- name: Disable thermal watchdog if turned off via thermal_watchdog_enabled
+- name: thermal-watchdog deaktivieren, wenn thermal_watchdog_enabled aus ist
   ansible.builtin.systemd:
     name: thermal-watchdog
     enabled: false
