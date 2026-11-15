@@ -47,7 +47,7 @@
     group: root
     mode: "0644"
   when: nightly_worker_wake_enabled | bool
-  notify: Reload systemd for nightly worker wake
+  notify: systemd für nightly-worker-wake neu laden
 
 - name: Alten nightly-worker-wake.timer deaktivieren (Trigger läuft jetzt über n8n statt systemd-Timer)
   ansible.builtin.systemd:
@@ -63,7 +63,7 @@
   ansible.builtin.file:
     path: /etc/systemd/system/nightly-worker-wake.timer
     state: absent
-  notify: Reload systemd for nightly worker wake
+  notify: systemd für nightly-worker-wake neu laden
 
 - name: Warnen, falls noch kein n8n-Trigger-Public-Key gesetzt ist
   ansible.builtin.debug:

@@ -1,9 +1,9 @@
 ---
-- name: Restart chrony
+- name: chrony neu starten
   ansible.builtin.service:
     name: chrony
     state: restarted
 
-- name: Reload sysctl
+- name: sysctl neu laden
   ansible.builtin.command: sysctl --system
   changed_when: false

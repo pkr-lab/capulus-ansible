@@ -1,23 +1,23 @@
 ---
-- name: Restart banana-pi heartbeat timer
+- name: heartbeat-timer des banana pi neu starten
   ansible.builtin.systemd:
     name: banana-pi-heartbeat.timer
     daemon_reload: true
     state: restarted
 
-- name: Reload getty@tty1
+- name: getty@tty1 neu laden
   ansible.builtin.systemd:
     daemon_reload: true
     name: getty@tty1.service
     state: restarted
 
-- name: Restart banana-pi daily reboot timer
+- name: timer für den täglichen reboot des banana pi neu starten
   ansible.builtin.systemd:
     name: banana-pi-daily-reboot.timer
     daemon_reload: true
     state: restarted
 
-- name: Restart banana-pi wol agent
+- name: wol-agent des banana pi neu starten
   ansible.builtin.systemd:
     name: banana-pi-wol-agent
     daemon_reload: true

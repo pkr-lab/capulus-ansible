@@ -1,4 +1,4 @@
 ---
-- name: Reload systemd for nightly worker wake
+- name: systemd für nightly-worker-wake neu laden
   ansible.builtin.systemd:
     daemon_reload: true

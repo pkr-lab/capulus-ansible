@@ -1,23 +1,23 @@
 ---
 
-- name: Voraussetzungen für k3s auf dem Node herstellen
+- name: voraussetzungen für k3s auf dem node herstellen
   ansible.builtin.import_tasks: prerequisites.yml
 
-- name: Host-Firewall für k3s konfigurieren
+- name: host-firewall für k3s konfigurieren
   ansible.builtin.import_tasks: ufw.yml
   when: k3s_agent_ufw_enable | bool
 
-- name: Read k3s node-token from server
+- name: node-token von k3s vom server lesen
   ansible.builtin.slurp:
     src: /var/lib/rancher/k3s/server/node-token
   delegate_to: "{{ k3s_server_host }}"
   register: k3s_agent_token_raw
 
-- name: Set k3s node-token fact
+- name: node-token von k3s als fakt setzen
   ansible.builtin.set_fact:
     k3s_node_token: "{{ k3s_agent_token_raw.content | b64decode | trim }}"
 
-- name: Create /etc/rancher/k3s directory
+- name: verzeichnis /etc/rancher/k3s anlegen
   ansible.builtin.file:
     path: /etc/rancher/k3s
     state: directory
@@ -25,21 +25,21 @@
     group: root
     mode: '0755'
 
-- name: Template k3s agent configuration
+- name: k3s-agent-konfiguration templaten
   ansible.builtin.template:
     src: k3s-agent-config.yaml.j2
     dest: /etc/rancher/k3s/config.yaml
     owner: root
     group: root
     mode: '0600'
-  notify: Restart k3s-agent
+  notify: k3s-agent neu starten
 
-- name: Check if k3s is already installed
+- name: prüfen ob k3s bereits installiert ist
   ansible.builtin.stat:
     path: /usr/local/bin/k3s
   register: k3s_agent_binary
 
-- name: Get current k3s version (if installed)
+- name: aktuelle k3s-version lesen (falls installiert)
   ansible.builtin.command: k3s --version
   register: k3s_agent_current_version
   changed_when: false
@@ -47,7 +47,7 @@
   check_mode: false
   when: k3s_agent_binary.stat.exists
 
-- name: Decide whether to (re)run the k3s installer
+- name: entscheiden ob der k3s-installer (erneut) laufen muss
   ansible.builtin.set_fact:
     k3s_agent_run_installer: >-
       {{
@@ -56,7 +56,7 @@
         or (k3s_version | length == 0 and auto_upgrade | bool)
       }}
 
-- name: Download k3s install script
+- name: k3s-installationsskript herunterladen
   ansible.builtin.get_url:
     url: "{{ k3s_installer_url }}"
     checksum: "sha256:{{ k3s_installer_sha256 }}"
@@ -65,7 +65,7 @@
     force: true
   when: k3s_agent_run_installer
 
-- name: Install or upgrade k3s agent
+- name: k3s-agent installieren oder aktualisieren
   ansible.builtin.command: /tmp/get-k3s.sh agent
   environment:
     INSTALL_K3S_VERSION: "{{ k3s_version }}"
@@ -79,19 +79,19 @@
     - "'Skipping' not in (k3s_agent_install_result.stdout | default(''))"
   when: k3s_agent_run_installer
 
-- name: Remove k3s install script
+- name: k3s-installationsskript entfernen
   ansible.builtin.file:
     path: /tmp/get-k3s.sh
     state: absent
 
-- name: Enable and start k3s-agent service
+- name: dienst k3s-agent aktivieren und starten
   ansible.builtin.systemd:
     name: k3s-agent
     state: started
     enabled: true
     daemon_reload: true
 
-- name: Wait for {{ k3s_agent_hostname }} node to become Ready
+- name: warten bis der node {{ k3s_agent_hostname }} ready ist
   ansible.builtin.command: kubectl get node {{ k3s_agent_hostname }} --no-headers
   register: k3s_agent_node_status
   retries: 30
@@ -106,7 +106,7 @@
   changed_when: false
   check_mode: false
 
-- name: Display cluster node status
+- name: node-status des clusters lesen
   ansible.builtin.command: kubectl get nodes -o wide
   register: k3s_agent_all_nodes
   delegate_to: "{{ k3s_server_host }}"
@@ -115,6 +115,6 @@
   changed_when: false
   check_mode: false
 
-- name: Show all cluster nodes
+- name: alle nodes des clusters anzeigen
   ansible.builtin.debug:
     var: k3s_agent_all_nodes.stdout_lines

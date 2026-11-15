@@ -8,7 +8,7 @@
     cache_valid_time: 3600
   when: journal_upload_enabled | bool
 
-- name: homeserver-root-ca verteilen (tls-pruefung des log-endpunkts)
+- name: homeserver-root-ca verteilen (tls-prüfung des log-endpunkts)
   ansible.builtin.include_role:
     name: homeserver_ca
   vars:
@@ -20,12 +20,12 @@
   ansible.builtin.debug:
     msg: "Homeserver-Root-CA wurde aktualisiert"
   changed_when: true
-  notify: Restart systemd-journal-upload
+  notify: systemd-journal-upload neu starten
   when:
     - journal_upload_enabled | bool and journal_upload_push_url.startswith('https://')
     - homeserver_ca_result is defined and homeserver_ca_result is changed
 
-- name: Log-Endpunkt per /etc/hosts aufloesen (unabhaengig von DNS)
+- name: Log-Endpunkt per /etc/hosts auflösen (unabhängig von DNS)
   ansible.builtin.lineinfile:
     path: /etc/hosts
     regexp: '^\S+\s+{{ journal_upload_hosts_entry_name | regex_escape }}(\s|$)'
@@ -34,9 +34,9 @@
     group: root
     mode: "0644"
   when: journal_upload_enabled | bool and journal_upload_hosts_entry_enabled | bool
-  notify: Restart systemd-journal-upload
+  notify: systemd-journal-upload neu starten
 
-- name: Drop-in-Verzeichnis fuer systemd-journal-upload anlegen
+- name: Drop-in-Verzeichnis für systemd-journal-upload anlegen
   ansible.builtin.file:
     path: /etc/systemd/system/systemd-journal-upload.service.d
     state: directory
@@ -45,7 +45,7 @@
     mode: "0755"
   when: journal_upload_enabled | bool
 
-- name: Dauerhaften Neustart fuer systemd-journal-upload konfigurieren
+- name: Dauerhaften Neustart für systemd-journal-upload konfigurieren
   ansible.builtin.copy:
     dest: /etc/systemd/system/systemd-journal-upload.service.d/restart.conf
     owner: root
@@ -59,15 +59,15 @@
       Restart=always
       RestartSec=30
   when: journal_upload_enabled | bool
-  notify: Restart systemd-journal-upload
+  notify: systemd-journal-upload neu starten
 
-- name: Gruppe fuer die Zugangsdaten des Log-Endpunkts anlegen
+- name: Gruppe für die Zugangsdaten des Log-Endpunkts anlegen
   ansible.builtin.group:
     name: "{{ journal_upload_credentials_group }}"
     system: true
   when: journal_upload_enabled | bool and journal_upload_basic_auth_password | length > 0
 
-- name: Dienst fuer den Zugriff auf die Zugangsdaten berechtigen
+- name: Dienst für den Zugriff auf die Zugangsdaten berechtigen
   ansible.builtin.copy:
     dest: /etc/systemd/system/systemd-journal-upload.service.d/credentials.conf
     owner: root
@@ -77,7 +77,7 @@
       [Service]
       SupplementaryGroups={{ journal_upload_credentials_group }}
   when: journal_upload_enabled | bool and journal_upload_basic_auth_password | length > 0
-  notify: Restart systemd-journal-upload
+  notify: systemd-journal-upload neu starten
 
 - name: journal-upload.conf deployen
   ansible.builtin.template:
@@ -88,17 +88,17 @@
     mode: "{{ '0640' if journal_upload_basic_auth_password | length > 0 else '0644' }}"
   no_log: "{{ journal_upload_basic_auth_password | length > 0 }}"
   when: journal_upload_enabled | bool
-  notify: Restart systemd-journal-upload
+  notify: systemd-journal-upload neu starten
 
-- name: Startpunkt fuer systemd-journal-upload setzen (kein Upload des Alt-Journals)
+- name: Startpunkt für systemd-journal-upload setzen (kein Upload des Alt-Journals)
   when: journal_upload_enabled | bool
   block:
-    - name: State-Verzeichnis pruefen
+    - name: State-Verzeichnis prüfen
       ansible.builtin.stat:
         path: "{{ journal_upload_state_dir }}"
       register: journal_upload_state_dir_stat
 
-    - name: State-Datei pruefen
+    - name: State-Datei prüfen
       ansible.builtin.stat:
         path: "{{ journal_upload_state_dir }}/state"
       register: journal_upload_state_stat
@@ -130,10 +130,10 @@
         - not journal_upload_state_stat.stat.exists
         - journal_upload_start_cursor.stdout_lines | length > 0
       notify:
-        - Start-Limit des Dienstes zuruecksetzen (nach Endlos-Fehlschlaegen)
-        - Restart systemd-journal-upload
+        - start-limit des dienstes zurücksetzen (nach endlos-fehlschlägen)
+        - systemd-journal-upload neu starten
 
-    - name: Handler sofort ausfuehren (Start-Limit zuruecksetzen, bevor der Dienst gestartet wird)
+    - name: Handler sofort ausführen (Start-Limit zurücksetzen, bevor der Dienst gestartet wird)
       ansible.builtin.meta: flush_handlers
 
 - name: systemd-journal-upload aktivieren und starten

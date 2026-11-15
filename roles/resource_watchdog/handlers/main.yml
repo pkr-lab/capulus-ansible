@@ -1,5 +1,5 @@
 ---
-- name: Restart resource watchdogs
+- name: resource-watchdogs neu starten
   ansible.builtin.systemd:
     name: "resource-watchdog@{{ item.name }}"
     daemon_reload: true

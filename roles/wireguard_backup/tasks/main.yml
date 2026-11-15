@@ -1,12 +1,12 @@
 ---
 
-- name: Install WireGuard tools
+- name: wireguard-tools installieren
   ansible.builtin.apt:
     name: wireguard
     state: "{{ 'latest' if auto_upgrade | bool else 'present' }}"
     update_cache: true
 
-- name: Ensure /etc/wireguard exists with restrictive permissions
+- name: sicherstellen dass /etc/wireguard mit restriktiven rechten existiert
   ansible.builtin.file:
     path: /etc/wireguard
     state: directory
@@ -14,23 +14,23 @@
     group: root
     mode: '0700'
 
-- name: Check whether a server private key already exists
+- name: prüfen ob schon ein privater server-schlüssel existiert
   ansible.builtin.stat:
     path: "/etc/wireguard/{{ wireguard_backup_interface }}.privatekey"
   register: wireguard_backup_privkey_stat
 
-- name: Generate server private key (first run only)
+- name: privaten server-schlüssel erzeugen (nur beim ersten lauf)
   ansible.builtin.shell: umask 077 && wg genkey > /etc/wireguard/{{ wireguard_backup_interface }}.privatekey
   when: not wireguard_backup_privkey_stat.stat.exists
   changed_when: true
 
-- name: Read server private key
+- name: privaten server-schlüssel lesen
   ansible.builtin.slurp:
     src: "/etc/wireguard/{{ wireguard_backup_interface }}.privatekey"
   register: wireguard_backup_privkey_raw
   no_log: true
 
-- name: Derive server public key
+- name: öffentlichen server-schlüssel ableiten
   ansible.builtin.command: wg pubkey
   args:
     stdin: "{{ wireguard_backup_privkey_raw.content | b64decode }}"
@@ -38,7 +38,7 @@
   changed_when: false
   no_log: true
 
-- name: Template WireGuard backup tunnel config
+- name: konfiguration des wireguard-backup-tunnels templaten
   ansible.builtin.template:
     src: wg-backup.conf.j2
     dest: "/etc/wireguard/{{ wireguard_backup_interface }}.conf"
@@ -46,23 +46,23 @@
     group: root
     mode: '0600'
   diff: false
-  notify: Restart wireguard backup tunnel
+  notify: wireguard-backup-tunnel neu starten
 
-- name: Allow WireGuard backup port through UFW
+- name: backup-port von wireguard in ufw freigeben
   community.general.ufw:
     rule: allow
     port: "{{ wireguard_backup_port }}"
     proto: udp
     comment: "WireGuard backup VPN (Tailscale-Ausfallsicherung, siehe https://github.com/pkr-lab/pkr-lab-docs/blob/main/capulus-core/c-netzwerk-dns/c0011-wireguard-backup.md)"
 
-- name: Enable and start wg-quick service for the backup tunnel
+- name: wg-quick-dienst für den backup-tunnel aktivieren und starten
   ansible.builtin.systemd:
     name: "wg-quick@{{ wireguard_backup_interface }}"
     state: started
     enabled: true
     daemon_reload: true
 
-- name: Display server public key and connection info
+- name: öffentlichen server-schlüssel und verbindungsdaten anzeigen
   ansible.builtin.debug:
     msg:
       - "WireGuard backup interface: {{ wireguard_backup_interface }}"
