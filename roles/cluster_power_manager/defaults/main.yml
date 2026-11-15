@@ -17,15 +17,13 @@ cluster_power_manager_min_uptime_seconds: 300
 
 cluster_power_manager_ready_timeout_seconds: 120
 
-cluster_power_manager_ssh_user: ubuntu
-cluster_power_manager_ssh_key_path: /etc/cluster-power-manager/id_ed25519
 cluster_power_manager_state_dir: /var/lib/cluster-power-manager
 
 cluster_power_manager_kubeconfig: /etc/rancher/k3s/k3s.yaml
 
-cluster_power_manager_ntfy_host: "ntfy.tech.homeserver"
-cluster_power_manager_ntfy_ip: "{{ network_static_ip }}"
-cluster_power_manager_ntfy_topic: "Home-Lab-System"
+cluster_power_manager_ntfy_host: "{{ homelab_ntfy_host }}"
+cluster_power_manager_ntfy_ip: "{{ homelab_ntfy_ip }}"
+cluster_power_manager_ntfy_topic: "{{ homelab_ntfy_topic }}"
 
 cluster_power_manager_workers:
   - name: worker-1

@@ -34,6 +34,7 @@
   ansible.builtin.slurp:
     src: "{{ power_agent_token_path }}"
   register: power_agent_token_raw
+  no_log: true
   when: power_agent_enabled | bool
 
 - name: bekannte hostschlüssel der worker aus der root-known_hosts lesen
@@ -105,6 +106,7 @@
     owner: root
     group: root
     mode: "0600"
+  diff: false
   when: power_agent_enabled | bool
   vars:
     power_agent_token: "{{ power_agent_token_raw.content | b64decode | trim }}"
@@ -134,7 +136,10 @@
     enabled: false
     state: stopped
   when: not (power_agent_enabled | bool)
-  failed_when: false
+  register: power_agent_deaktivieren_result
+  failed_when:
+    - power_agent_deaktivieren_result is failed
+    - "'Could not find' not in (power_agent_deaktivieren_result.msg | default(''))"
 
 - name: Hinweis zum Sealed-Secret-Abgleich ausgeben
   ansible.builtin.debug:

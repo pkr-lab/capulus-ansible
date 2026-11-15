@@ -24,7 +24,19 @@ k3s_kubelet_system_reserved_memory: "1Gi"
 k3s_kubelet_kube_reserved_memory: "512Mi"
 
 k3s_server_host: homeserver
-k3s_agent_hostname: worker-0
+
+k3s_cluster_version: "v1.36.5+k3s1"
+k3s_cluster_server_host: controlplane-0
+k3s_installer_url: https://raw.githubusercontent.com/k3s-io/k3s/2977c525a2e7a487886107ce4df43630ae9b03b2/install.sh
+k3s_installer_sha256: e5cc3b3d9dfc1662c2d9be6da5abc9a4cd317d6abc3a5ffc02e3dd3248207fee
+
+homelab_ntfy_host: ntfy.tech.homeserver
+homelab_ntfy_ip: "{{ network_static_ip }}"
+homelab_ntfy_topic: Home-Lab-System
+
+cluster_power_manager_ssh_user: ubuntu
+cluster_power_manager_ssh_key_path: /etc/cluster-power-manager/id_ed25519
+k3s_agent_hostname: "{{ inventory_hostname }}"
 
 helm_version: ""
 
@@ -86,14 +98,14 @@ semaphore_projects:
         ssh_key: semaphore-ssh-key
         content: |
           [k3s_servers]
-          controlplane-0 ansible_host=192.168.178.94
-          controlplane-1 ansible_host=192.168.178.95
+          controlplane-0 ansible_host={{ hostvars['controlplane-0']['ansible_host'] }}
+          controlplane-1 ansible_host={{ hostvars['controlplane-1']['ansible_host'] }}
 
           [k3s_primary]
           controlplane-0
 
           [k3s_agents]
-          worker-1 ansible_host=192.168.178.96
+          worker-1 ansible_host={{ hostvars['worker-1']['ansible_host'] }}
     templates:
       - name: "Deploy Home Server"
         playbook: site.yml
@@ -121,10 +133,10 @@ semaphore_projects:
         ssh_key: semaphore-ssh-key
         content: |
           [k3s_servers]
-          controlplane-1 ansible_host=192.168.178.95
+          controlplane-1 ansible_host={{ hostvars['controlplane-1']['ansible_host'] }}
 
           [k3s_primary]
-          controlplane-0 ansible_host=192.168.178.94
+          controlplane-0 ansible_host={{ hostvars['controlplane-0']['ansible_host'] }}
     templates:
       - name: "Deploy controlplane-1"
         playbook: controlplane-1.yml
@@ -147,10 +159,10 @@ semaphore_projects:
         ssh_key: semaphore-ssh-key
         content: |
           [k3s_agents]
-          worker-1 ansible_host=192.168.178.96
+          worker-1 ansible_host={{ hostvars['worker-1']['ansible_host'] }}
 
           [k3s_primary]
-          controlplane-0 ansible_host=192.168.178.94
+          controlplane-0 ansible_host={{ hostvars['controlplane-0']['ansible_host'] }}
     templates:
       - name: "Deploy worker-1"
         playbook: worker-1.yml
@@ -158,33 +170,6 @@ semaphore_projects:
         environment: default-env
         vault_key: vault-password
         description: "apt-Update, k3s-Agent, thermal_watchdog, resource_watchdog auf worker-1."
-
-  - name: alarm-kiosks
-    description: >-
-      Alarmmonitor-Kiosks (Raspberry Pi, ALAMOS AMweb) einrichten — siehe
-      https://github.com/pkr-lab/pkr-lab-docs/blob/main/capulus-core/3-apps-workloads/30010-alamos-apager.md.
-    repository:
-      name: home-server-git
-      url: "{{ semaphore_ansible_repo_url }}"
-      branch: main
-    environments:
-      - "{{ semaphore_default_environment }}"
-    inventories:
-      - name: raspberry_pis
-        type: static
-        ssh_key: semaphore-ssh-key
-        content: |
-          [raspberry_pis]
-          # Pi-Hostnamen hier eintragen, sobald vorhanden (Stationsname muss
-          # zu einem Key im SealedSecret alamos-apager-stations passen):
-          # geraetehaus ansible_host=192.168.178.110 alamos_kiosk_station=geraetehaus
-    templates:
-      - name: "Deploy Alarmmonitor Kiosks"
-        playbook: alarm-kiosks.yml
-        inventory: raspberry_pis
-        environment: default-env
-        vault_key: vault-password
-        description: "Chromium-Kiosk + Heartbeat-Timer auf den Alarmmonitor-Pis."
 
   - name: xibo-displays
     description: >-

@@ -69,6 +69,7 @@
        | list }}
   loop_control:
     label: "{{ item.name }}"
+  when: semaphore_bootstrap_delete_orphan_projects | bool
 
 - name: Display Semaphore bootstrap summary
   ansible.builtin.debug:

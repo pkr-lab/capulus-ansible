@@ -112,13 +112,10 @@
   register: semaphore_ns_apply
   changed_when: "'created' in semaphore_ns_apply.stdout"
 
-- name: Render bootstrap Secret manifest
-  ansible.builtin.copy:
-    dest: /tmp/semaphore-bootstrap-secret.yaml
-    owner: root
-    group: root
-    mode: '0600'
-    content: |
+- name: bootstrap-secret im cluster anlegen
+  ansible.builtin.command:
+    argv: [kubectl, apply, -f, -]
+    stdin: |
       apiVersion: v1
       kind: Secret
       metadata:
@@ -133,17 +130,14 @@
         ansible_vault_password: {{ semaphore_vault_password | to_json }}
         ssh_private_key: {{ semaphore_ssh_private_key | to_json }}
         ssh_public_key: {{ semaphore_ssh_public_key | to_json }}
-  no_log: true
-
-- name: Apply bootstrap Secret to the cluster
-  ansible.builtin.command: kubectl apply -f /tmp/semaphore-bootstrap-secret.yaml
   environment:
     KUBECONFIG: /etc/rancher/k3s/k3s.yaml
   register: semaphore_secret_apply
   changed_when:
     - "'unchanged' not in semaphore_secret_apply.stdout"
+  no_log: true
 
-- name: Remove temporary Secret manifest
+- name: altes temporaeres secret-manifest entfernen
   ansible.builtin.file:
     path: /tmp/semaphore-bootstrap-secret.yaml
     state: absent

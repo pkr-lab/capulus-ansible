@@ -28,6 +28,7 @@
   ansible.builtin.slurp:
     src: "/etc/wireguard/{{ wireguard_backup_interface }}.privatekey"
   register: wireguard_backup_privkey_raw
+  no_log: true
 
 - name: Derive server public key
   ansible.builtin.command: wg pubkey
@@ -35,6 +36,7 @@
     stdin: "{{ wireguard_backup_privkey_raw.content | b64decode }}"
   register: wireguard_backup_pubkey_result
   changed_when: false
+  no_log: true
 
 - name: Template WireGuard backup tunnel config
   ansible.builtin.template:
@@ -43,6 +45,7 @@
     owner: root
     group: root
     mode: '0600'
+  diff: false
   notify: Restart wireguard backup tunnel
 
 - name: Allow WireGuard backup port through UFW

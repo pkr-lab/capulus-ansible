@@ -261,4 +261,7 @@
     enabled: false
     state: stopped
   when: not (alert_caller_enabled | bool)
-  failed_when: false
+  register: alert_caller_deaktivieren_result
+  failed_when:
+    - alert_caller_deaktivieren_result is failed
+    - "'Could not find' not in (alert_caller_deaktivieren_result.msg | default(''))"
