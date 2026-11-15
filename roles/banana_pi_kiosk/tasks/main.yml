@@ -41,15 +41,12 @@
     cache_valid_time: 3600
   when: banana_pi_kiosk_enabled | bool
 
-- name: Homeserver-Root-CA-Zertifikat deployen
-  ansible.builtin.copy:
-    src: "{{ banana_pi_kiosk_ca_src }}"
-    dest: /usr/local/share/ca-certificates/homeserver-root-ca.crt
-    owner: root
-    group: root
-    mode: "0644"
+- name: homeserver-root-ca verteilen
+  ansible.builtin.include_role:
+    name: homeserver_ca
+  vars:
+    homeserver_ca_src: "{{ banana_pi_kiosk_ca_src }}"
   when: banana_pi_kiosk_enabled | bool
-  notify: Homeserver-CA-Vertrauensspeicher aktualisieren
 
 - name: NSS-Datenbank-Verzeichnis des Kiosk-Users anlegen
   ansible.builtin.file:
@@ -91,7 +88,10 @@
     state: stopped
     masked: true
   when: banana_pi_kiosk_enabled | bool
-  failed_when: false
+  register: banana_pi_kiosk_deaktivieren_result_0
+  failed_when:
+    - banana_pi_kiosk_deaktivieren_result_0 is failed
+    - "'Could not find' not in (banana_pi_kiosk_deaktivieren_result_0.msg | default(''))"
 
 - name: Verzeichnis fuer getty@tty1-Drop-in anlegen
   ansible.builtin.file:
@@ -134,6 +134,27 @@
     group: "{{ banana_pi_kiosk_user }}"
     mode: "0755"
   when: banana_pi_kiosk_enabled | bool
+
+- name: konfigurationsverzeichnis fuer den kiosk-supervisor anlegen
+  ansible.builtin.file:
+    path: /etc/banana-pi-kiosk
+    state: directory
+    owner: root
+    group: "{{ banana_pi_kiosk_user }}"
+    mode: "0750"
+  when: banana_pi_kiosk_enabled | bool
+
+- name: fallback-url des kiosk-supervisors ablegen
+  ansible.builtin.copy:
+    content: "FALLBACK_URL={{ banana_pi_kiosk_fallback_url | quote }}\n"
+    dest: /etc/banana-pi-kiosk/supervisor.env
+    owner: root
+    group: "{{ banana_pi_kiosk_user }}"
+    mode: "0640"
+  no_log: true
+  diff: false
+  when: banana_pi_kiosk_enabled | bool
+  notify: Reload getty@tty1
 
 - name: Kiosk-Supervisor-Skript deployen
   ansible.builtin.template:
@@ -284,7 +305,10 @@
     enabled: false
     state: stopped
   when: not (banana_pi_kiosk_wol_agent_enabled | bool) or not (banana_pi_kiosk_enabled | bool)
-  failed_when: false
+  register: banana_pi_kiosk_deaktivieren_result_1
+  failed_when:
+    - banana_pi_kiosk_deaktivieren_result_1 is failed
+    - "'Could not find' not in (banana_pi_kiosk_deaktivieren_result_1.msg | default(''))"
 
 - name: Hinweis zum WoL-Agent-Token ausgeben
   ansible.builtin.debug:
@@ -344,7 +368,10 @@
     enabled: false
     state: stopped
   when: not (banana_pi_kiosk_enabled | bool)
-  failed_when: false
+  register: banana_pi_kiosk_deaktivieren_result_2
+  failed_when:
+    - banana_pi_kiosk_deaktivieren_result_2 is failed
+    - "'Could not find' not in (banana_pi_kiosk_deaktivieren_result_2.msg | default(''))"
 
 - name: Daily-Reboot-systemd-Service + Timer deployen
   ansible.builtin.template:
@@ -373,4 +400,7 @@
     enabled: false
     state: stopped
   when: not (banana_pi_kiosk_daily_reboot_enabled | bool) or not (banana_pi_kiosk_enabled | bool)
-  failed_when: false
+  register: banana_pi_kiosk_deaktivieren_result_3
+  failed_when:
+    - banana_pi_kiosk_deaktivieren_result_3 is failed
+    - "'Could not find' not in (banana_pi_kiosk_deaktivieren_result_3.msg | default(''))"

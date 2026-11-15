@@ -353,7 +353,9 @@
     KUBECONFIG: /etc/rancher/k3s/k3s.yaml
   register: k3s_core_pods_ready
   changed_when: false
-  failed_when: false
+  failed_when:
+    - k3s_core_pods_ready.rc != 0
+    - "'no matching resources' not in k3s_core_pods_ready.stderr"
 
 - name: Get system pod status
   ansible.builtin.command: kubectl get pods -n kube-system --no-headers

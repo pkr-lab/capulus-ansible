@@ -1,0 +1,3 @@
+---
+homeserver_ca_src: "{{ playbook_dir }}/files/homeserver-root-ca.pem"
+homeserver_ca_dest: /usr/local/share/ca-certificates/homeserver-root-ca.crt

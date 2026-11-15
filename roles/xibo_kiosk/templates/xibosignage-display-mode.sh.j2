@@ -3,7 +3,6 @@ set -u
 export LC_ALL=C
 
 SCREEN_FILE=/dev/shm/xibosignage-screen
-POLL_SECONDS={{ xibo_kiosk_display_poll_seconds }}
 FORCED_MODE="{{ xibo_kiosk_display_mode }}"
 PIXEL_ASPECT="{{ xibo_kiosk_pixel_aspect }}"
 
@@ -95,17 +94,8 @@ apply_once() {
   write_screen "${FORCED_MODE%x*}" "${FORCED_MODE#*x}"
 }
 
-if [ "${1:-}" = "once" ]; then
-  apply_once
-  exit 0
-fi
-
-if [ "${1:-}" = "par" ]; then
-  pixel_aspect
-  exit 0
-fi
-
-while true; do
-  apply_once || true
-  sleep "$POLL_SECONDS"
-done
+case "${1:-}" in
+  once) apply_once || true ;;
+  par) pixel_aspect || true ;;
+  *) echo "Aufruf: $0 once|par" >&2; exit 2 ;;
+esac

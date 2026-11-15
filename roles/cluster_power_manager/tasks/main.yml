@@ -94,4 +94,7 @@
     enabled: false
     state: stopped
   when: not (cluster_power_manager_enabled | bool)
-  failed_when: false
+  register: cluster_power_manager_deaktivieren_result
+  failed_when:
+    - cluster_power_manager_deaktivieren_result is failed
+    - "'Could not find' not in (cluster_power_manager_deaktivieren_result.msg | default(''))"

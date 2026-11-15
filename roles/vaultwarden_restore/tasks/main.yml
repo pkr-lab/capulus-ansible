@@ -21,36 +21,54 @@
   changed_when: false
   failed_when: false
 
-- name: Eventuellen Restore-Job aus einem vorherigen Lauf entfernen
-  ansible.builtin.command: >
-    kubectl -n {{ vaultwarden_namespace }} delete job vaultwarden-restore --ignore-not-found
-  changed_when: false
+- name: restore-job ausfuehren und vaultwarden danach immer wieder starten
+  block:
+    - name: Eventuellen Restore-Job aus einem vorherigen Lauf entfernen
+      ansible.builtin.command: >
+        kubectl -n {{ vaultwarden_namespace }} delete job vaultwarden-restore --ignore-not-found
+      changed_when: false
 
-- name: Restore-Job-Manifest rendern
-  ansible.builtin.template:
-    src: restore-job.yaml.j2
-    dest: /tmp/vaultwarden-restore-job.yaml
-    mode: "0600"
+    - name: Restore-Job-Manifest rendern
+      ansible.builtin.template:
+        src: restore-job.yaml.j2
+        dest: /tmp/vaultwarden-restore-job.yaml
+        mode: "0600"
 
-- name: Restore-Job anwenden
-  ansible.builtin.command: kubectl apply -f /tmp/vaultwarden-restore-job.yaml
-  changed_when: true
+    - name: Restore-Job anwenden
+      ansible.builtin.command: kubectl apply -f /tmp/vaultwarden-restore-job.yaml
+      changed_when: true
 
-- name: Warten bis der Restore-Job abgeschlossen ist
-  ansible.builtin.command: >
-    kubectl -n {{ vaultwarden_namespace }} wait --for=condition=complete
-    job/vaultwarden-restore --timeout=180s
-  changed_when: false
+    - name: Warten bis der Restore-Job abgeschlossen ist
+      ansible.builtin.command: >
+        kubectl -n {{ vaultwarden_namespace }} wait --for=condition=complete
+        job/vaultwarden-restore --timeout=180s
+      changed_when: false
 
-- name: Gerendertes Job-Manifest wieder entfernen
-  ansible.builtin.file:
-    path: /tmp/vaultwarden-restore-job.yaml
-    state: absent
+  rescue:
+    - name: logs des fehlgeschlagenen restore-jobs lesen
+      ansible.builtin.command: >
+        kubectl -n {{ vaultwarden_namespace }} logs job/vaultwarden-restore --tail=50
+      register: vaultwarden_restore_job_logs
+      changed_when: false
+      failed_when: false
 
-- name: Vaultwarden-Deployment wieder auf 1 Replica skalieren
-  ansible.builtin.command: >
-    kubectl -n {{ vaultwarden_namespace }} scale deployment/{{ vaultwarden_release }} --replicas=1
-  changed_when: true
+    - name: fehlgeschlagenen restore melden
+      ansible.builtin.fail:
+        msg: >-
+          Der Restore-Job ist fehlgeschlagen, Vaultwarden wird mit dem aktuellen
+          PVC-Inhalt wieder gestartet. Job-Logs:
+          {{ vaultwarden_restore_job_logs.stdout | default('') }}
+
+  always:
+    - name: Gerendertes Job-Manifest wieder entfernen
+      ansible.builtin.file:
+        path: /tmp/vaultwarden-restore-job.yaml
+        state: absent
+
+    - name: Vaultwarden-Deployment wieder auf 1 Replica skalieren
+      ansible.builtin.command: >
+        kubectl -n {{ vaultwarden_namespace }} scale deployment/{{ vaultwarden_release }} --replicas=1
+      changed_when: true
 
 - name: Warten bis Vaultwarden wieder Ready ist
   ansible.builtin.command: >

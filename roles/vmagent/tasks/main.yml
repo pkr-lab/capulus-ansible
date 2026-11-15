@@ -115,4 +115,7 @@
     enabled: false
     state: stopped
   when: not (vmagent_enabled | bool)
-  failed_when: false
+  register: vmagent_deaktivieren_result
+  failed_when:
+    - vmagent_deaktivieren_result is failed
+    - "'Could not find' not in (vmagent_deaktivieren_result.msg | default(''))"

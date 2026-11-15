@@ -5,6 +5,7 @@
 
 - name: Host-Firewall für k3s konfigurieren
   ansible.builtin.import_tasks: ufw.yml
+  when: k3s_agent_ufw_enable | bool
 
 - name: Read k3s node-token from server
   ansible.builtin.slurp:
