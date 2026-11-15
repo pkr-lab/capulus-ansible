@@ -88,6 +88,7 @@
         state: directory
         suffix: cups-tls
       register: cups_print_server_tls_tmpdir
+      check_mode: false
 
     - name: Temporäres Schlüssel-/Zertifikatspaar generieren
       ansible.builtin.command:
@@ -108,7 +109,8 @@
           - "/C=US/CN={{ cups_print_server_tls_names[0] }}/O={{ cups_print_server_tls_names[0] }}"
           - -addext
           - "subjectAltName={{ (cups_print_server_tls_names | map('regex_replace', '^(.*)$', 'DNS:\\1') | list + ['IP:' + cups_print_server_tls_ip]) | join(',') }}"
-      changed_when: true
+      changed_when: false
+      check_mode: false
 
     - name: Zertifikat unter allen Selbst-Identifikationsnamen ablegen
       ansible.builtin.copy:
@@ -130,6 +132,7 @@
         group: root
         mode: "0600"
       loop: "{{ cups_print_server_tls_names }}"
+      diff: false
       notify: cups neu starten
 
   always:
@@ -138,6 +141,7 @@
         path: "{{ cups_print_server_tls_tmpdir.path }}"
         state: absent
       when: cups_print_server_tls_tmpdir.path is defined
+      check_mode: false
 
 - name: bestehende tls-schlüssel auf modus 0600 setzen
   ansible.builtin.file:
