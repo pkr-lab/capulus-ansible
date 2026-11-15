@@ -11,11 +11,9 @@ address=/dev.homeserver/{{ entw_vm_ip }}
 address=/{{ host }}/{{ prod_vm_ip }}
 {% endfor %}
 
-address=/worker-0/192.168.178.95
+address=/controlplane-1/{{ hostvars['controlplane-1']['ansible_host'] }}
 
-address=/controlplane-1/192.168.178.95
-
-address=/worker-1/192.168.178.96
+address=/worker-1/{{ hostvars['worker-1']['ansible_host'] }}
 
 address=/ugreen-nas/192.168.178.97
 

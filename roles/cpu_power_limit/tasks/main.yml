@@ -36,4 +36,7 @@
     enabled: false
     state: stopped
   when: not (cpu_power_limit_enabled | bool)
-  failed_when: false
+  register: cpu_power_limit_deaktivieren_result
+  failed_when:
+    - cpu_power_limit_deaktivieren_result is failed
+    - "'Could not find' not in (cpu_power_limit_deaktivieren_result.msg | default(''))"

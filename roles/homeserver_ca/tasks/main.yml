@@ -1,0 +1,10 @@
+---
+- name: homeserver-root-ca in den system-vertrauensspeicher legen
+  ansible.builtin.copy:
+    src: "{{ homeserver_ca_src }}"
+    dest: "{{ homeserver_ca_dest }}"
+    owner: root
+    group: root
+    mode: "0644"
+  register: homeserver_ca_result
+  notify: system-vertrauensspeicher aktualisieren

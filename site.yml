@@ -35,8 +35,6 @@
       tags: [k3s, kubernetes]
     - role: argocd
       tags: [argocd, gitops]
-    - role: semaphore_secrets
-      tags: [semaphore, semaphore-secrets]
     - role: journal_upload
       tags: [journal-upload, logging]
     - role: smartctl_exporter
@@ -64,7 +62,7 @@
       register: common_ufw_loopback_check
       changed_when: false
       failed_when: false
-      tags: [always]
+      tags: [common, base, ufw]
 
     - name: Self-heal UFW by disabling/re-enabling to rebuild its nftables tables
       ansible.builtin.command: "{{ item }}"
@@ -73,7 +71,7 @@
         - ufw --force enable
       when: common_ufw_loopback_check.rc != 0
       changed_when: true
-      tags: [always]
+      tags: [common, base, ufw]
 
     - name: Warn that UFW's loopback rule had to be repaired
       ansible.builtin.debug:
@@ -85,7 +83,7 @@
           /etc/ufw/before.rules. See
           https://github.com/pkr-lab/pkr-lab-docs/blob/main/capulus-core/c-netzwerk-dns/c0000-dns-architecture.md for details.
       when: common_ufw_loopback_check.rc != 0
-      tags: [always]
+      tags: [common, base, ufw]
 
     - name: Display setup summary
       ansible.builtin.debug:

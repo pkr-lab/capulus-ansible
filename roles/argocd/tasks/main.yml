@@ -207,7 +207,9 @@
     --ignore-not-found
   register: argocd_legacy_project_delete
   changed_when: "'deleted' in argocd_legacy_project_delete.stdout"
-  failed_when: false
+  failed_when:
+    - argocd_legacy_project_delete.rc != 0
+    - "'have a resource type' not in argocd_legacy_project_delete.stderr"
   when: argocd_entw_layout | bool
   environment:
     KUBECONFIG: /etc/rancher/k3s/k3s.yaml
@@ -224,9 +226,11 @@
   loop: "{{ ['entw'] if argocd_entw_layout | bool else ['tech'] }}"
   register: argocd_appset_status
   changed_when: false
-  failed_when: false
   environment:
     KUBECONFIG: /etc/rancher/k3s/k3s.yaml
+  until:
+    - argocd_appset_status.rc == 0
+    - argocd_appset_status.stdout != 'True'
   retries: 5
   delay: 10
 
@@ -251,7 +255,9 @@
   loop: "{{ argocd_platform_apps }}"
   register: argocd_platform_label
   changed_when: "'labeled' in argocd_platform_label.stdout"
-  failed_when: false
+  failed_when:
+    - argocd_platform_label.rc != 0
+    - "'not found' not in argocd_platform_label.stderr"
   environment:
     KUBECONFIG: /etc/rancher/k3s/k3s.yaml
 
@@ -261,7 +267,9 @@
   loop: "{{ argocd_workloads_apps }}"
   register: argocd_workloads_label
   changed_when: "'labeled' in argocd_workloads_label.stdout"
-  failed_when: false
+  failed_when:
+    - argocd_workloads_label.rc != 0
+    - "'not found' not in argocd_workloads_label.stderr"
   environment:
     KUBECONFIG: /etc/rancher/k3s/k3s.yaml
 

@@ -9,7 +9,7 @@ Ansible-Playbooks und Rollen für das Capulus-Homelab: provisioniert die Ubuntu-
 - **Keine neuen Kommentare im Code.** Gilt für YAML, Jinja-Templates, Shell und Makefile. Bestehende Kommentare bleiben, bis die Stelle ohnehin überarbeitet wird; dann die Begründung ins Doc verschieben. Einzige Ausnahme: der Versions-Kommentar `# vX.Y.Z` hinter der Commit-SHA in `uses:`-Zeilen der Workflows (Renovate und Dependabot lesen ihn).
 - **Doku liegt nicht in diesem Repo, sondern in [pkr-lab-docs](https://github.com/pkr-lab/pkr-lab-docs)** unter `capulus/capulus-ansible/`. Jede Codeänderung bekommt dort einen PR: Rollen-Doc unter `rollen/<rolle>.md`, Hintergründe (warum) unter `6-hintergruende/` (Rollen: `60020-ansible-rollen.md`). Konventionen stehen in der `CLAUDE.md` von pkr-lab-docs.
 - **Vor dem Ändern einer Rolle das Rollen-Doc und den Hintergrund-Eintrag lesen.** Die meisten Eigenheiten existieren, weil der naheliegende Ansatz schon einmal gescheitert ist.
-- **Vault-Dateien nie anfassen:** `group_vars/all.yml` und `group_vars/user_inventory_vault.yml` sind mit ansible-vault verschlüsselt. Nie entschlüsseln, ausgeben oder neu anlegen. Änderungen daran macht der Nutzer selbst (`make vault-edit`, `make user-inventory-edit`).
+- **Vault-Werte nie anfassen:** `group_vars/user_inventory_vault.yml` und `host_vars/*/vault.yml` sind als Ganzes mit ansible-vault verschlüsselt. `group_vars/all.yml` und einige `vars.yml` sind Klartext mit einzelnen inline verschlüsselten Werten (`!vault |`). Verschlüsselte Dateien und `!vault`-Blöcke nie entschlüsseln, ausgeben, ändern oder neu anlegen; Klartextwerte daneben dürfen geändert werden. Neue oder geänderte Geheimnisse verschlüsselt der Nutzer selbst (`make vault-encrypt-string NAME=<variable>`, `make user-inventory-edit`); Claude nennt ihm dafür den Befehl.
 - **Niemals Klartext-Secrets committen.** Neue Geheimnisse gehören in den Vault. gitleaks läuft in der CI (`.gitleaks.toml`).
 - **Nie direkt auf `main` arbeiten.** `main` ist geschützt, Änderungen gehen nur per PR hinein. Steht das Arbeitsverzeichnis auf `main`, vor der ersten Änderung einen neuen Branch anlegen (`git switch -c <typ>/<kurzbeschreibung>`, z. B. `feat/backup-retention`, `fix/ca-pin`) und nur dort arbeiten. Den Branch legt Claude an, Commit, Push und PR macht der Nutzer.
 - `argocd/bootstrap/*` in capulus-core wird aus der Rolle `argocd` **generiert** (`make render-bootstrap CORE_DIR=<Pfad zu capulus-core>`). Dort nie von Hand ändern, sondern hier Template oder Defaults der Rolle anpassen und neu rendern (im Container meist nicht möglich → dem Nutzer sagen).
@@ -24,7 +24,7 @@ Ansible-Playbooks und Rollen für das Capulus-Homelab: provisioniert die Ubuntu-
 | `controlplane-1.yml`, `worker-1.yml` | ControlPlane-1 (k3s-Server) und der Worker mit Watchdogs |
 | `k3s-servers-update.yml`, `k3s-upgrade.yml` | Server nacheinander aktualisieren (apt, k3s), nur mit gesundem etcd-Peer |
 | `prod.yml`, `entw.yml` | PROD- und ENTW-Cluster in den KVM-VMs |
-| `alarm-kiosks.yml`, `banana-pi-kiosks.yml`, `xibo-kiosks.yml` | Kiosk-Raspberry-Pis |
+| `banana-pi-kiosks.yml`, `xibo-kiosks.yml` | Kiosk-Pis (Banana Pi, Raspberry Pi) |
 | `alert-caller.yml` | Telefon-Alarmierung (externe VM und Vereinsheim-Pi) |
 | `render-bootstrap.yml` | erzeugt `argocd/bootstrap/` in capulus-core |
 | `vaultwarden-restore.yml` | Wiederherstellung von Vaultwarden |

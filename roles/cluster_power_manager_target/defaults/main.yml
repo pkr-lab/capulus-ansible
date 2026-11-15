@@ -1,7 +1,4 @@
 ---
 cluster_power_manager_target_enabled: true
 
-cluster_power_manager_ssh_user: ubuntu
-cluster_power_manager_ssh_key_path: /etc/cluster-power-manager/id_ed25519
-
 cluster_power_manager_poweroff_bin: /usr/sbin/poweroff
