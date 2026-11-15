@@ -5,6 +5,7 @@
   register: libvirt_host_vm_exists
   changed_when: false
   failed_when: false
+  check_mode: false
 
 - name: Eigenstaendige Disk fuer die VM aus dem Basis-Image anlegen (ueberspringt, falls sie schon existiert)
   ansible.builtin.command: >
@@ -31,6 +32,7 @@
   register: libvirt_host_vm_disk_info
   changed_when: false
   failed_when: false
+  check_mode: false
   when: libvirt_host_vm_exists.rc == 0
 
 - name: Warnen, wenn die Disk einer bestehenden VM am Basis-Image haengt
@@ -44,6 +46,7 @@
   when:
     - libvirt_host_vm_exists.rc == 0
     - libvirt_host_vm_disk_info.rc == 0
+    - libvirt_host_vm_disk_info.stdout | length > 0
     - "'full-backing-filename' in (libvirt_host_vm_disk_info.stdout | from_json)"
 
 - name: cloud-init user-data + meta-data + network-config rendern
