@@ -97,7 +97,7 @@
     group: root
     mode: "0755"
   when: power_agent_enabled | bool
-  notify: Restart power agent
+  notify: power-agent neu starten
 
 - name: Konfiguration templaten
   ansible.builtin.template:
@@ -110,7 +110,7 @@
   when: power_agent_enabled | bool
   vars:
     power_agent_token: "{{ power_agent_token_raw.content | b64decode | trim }}"
-  notify: Restart power agent
+  notify: power-agent neu starten
 
 - name: systemd-Unit deployen
   ansible.builtin.template:
@@ -120,7 +120,7 @@
     group: root
     mode: "0644"
   when: power_agent_enabled | bool
-  notify: Restart power agent
+  notify: power-agent neu starten
 
 - name: power-agent aktivieren und starten
   ansible.builtin.systemd:

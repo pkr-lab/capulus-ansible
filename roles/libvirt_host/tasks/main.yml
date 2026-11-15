@@ -38,7 +38,7 @@
           # Managed by Ansible (libvirt_host role): bewusst leer.
           # libvirt-daemon-config-network legt hier bei jedem Upgrade einen Symlink
           # mit "bind-interfaces" an - kollidiert mit "bind-dynamic" in /etc/dnsmasq.conf.
-      notify: System-dnsmasq nach Snippet-Entschaerfung neu starten
+      notify: system-dnsmasq nach snippet-entschärfung neu starten
 
     - name: Handler sofort ausfuehren (System-dnsmasq moeglichst schnell wieder hochbringen)
       ansible.builtin.meta: flush_handlers
@@ -84,7 +84,7 @@
           [Unit]
           After=dnsmasq.service tailscaled.service
           Wants=dnsmasq.service
-      notify: systemd nach libvirt-guests-Drop-in neu laden
+      notify: systemd nach libvirt-guests-drop-in neu laden
 
 - name: Bridge-Netzwerk einrichten (nur wenn explizit aktiviert)
   when:

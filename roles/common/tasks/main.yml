@@ -1,30 +1,30 @@
 ---
 
-- name: Set system hostname
+- name: hostnamen setzen
   ansible.builtin.hostname:
     name: "{{ hostname }}"
     use: systemd
 
-- name: Update /etc/hosts with hostname
+- name: hostnamen in /etc/hosts eintragen
   ansible.builtin.lineinfile:
     path: /etc/hosts
     regexp: '^127\.0\.1\.1'
     line: "127.0.1.1 {{ hostname }}"
     state: present
 
-- name: Update apt cache
+- name: apt-cache aktualisieren
   ansible.builtin.apt:
     update_cache: true
     cache_valid_time: 3600
 
-- name: Upgrade all packages to latest (dist-upgrade)
+- name: alle pakete aktualisieren (dist-upgrade)
   ansible.builtin.apt:
     upgrade: dist
     autoremove: true
     autoclean: true
   when: auto_upgrade | bool
 
-- name: Install required system packages
+- name: benötigte systempakete installieren
   ansible.builtin.apt:
     name:
       - curl
@@ -50,7 +50,7 @@
       - update-notifier-common
     state: "{{ 'latest' if auto_upgrade | bool else 'present' }}"
 
-- name: Enable unattended-upgrades (security patches between Ansible runs)
+- name: unattended-upgrades einschalten (sicherheitsupdates zwischen den ansible-läufen)
   ansible.builtin.copy:
     dest: /etc/apt/apt.conf.d/20auto-upgrades
     owner: root
@@ -63,7 +63,7 @@
       APT::Periodic::AutocleanInterval "7";
       APT::Periodic::Unattended-Upgrade "1";
 
-- name: Configure unattended-upgrades to also pull "updates" and clean up
+- name: unattended-upgrades auch für "updates" und zum aufräumen einrichten
   ansible.builtin.copy:
     dest: /etc/apt/apt.conf.d/51unattended-upgrades-home-server
     owner: root
@@ -81,18 +81,18 @@
       Unattended-Upgrade::Remove-Unused-Dependencies "true";
       Unattended-Upgrade::Automatic-Reboot "false";
 
-- name: Ensure unattended-upgrades service is enabled
+- name: sicherstellen dass der dienst unattended-upgrades aktiviert ist
   ansible.builtin.systemd:
     name: unattended-upgrades
     enabled: true
     state: started
 
-- name: Set system timezone
+- name: zeitzone setzen
   community.general.timezone:
     name: "{{ timezone }}"
-  notify: Restart chrony
+  notify: chrony neu starten
 
-- name: Ensure chrony is enabled and running
+- name: chrony aktivieren und starten
   ansible.builtin.service:
     name: chrony
     state: started
@@ -101,31 +101,31 @@
 - name: kubernetes-voraussetzungen herstellen (swap, kernel-module, sysctl)
   ansible.builtin.import_tasks: k8s_prerequisites.yml
 
-- name: Allow SSH (port 22) before any other firewall changes
+- name: ssh (port 22) vor allen anderen firewall-änderungen erlauben
   community.general.ufw:
     rule: allow
     port: "22"
     proto: tcp
     comment: "SSH"
 
-- name: Set UFW default incoming policy to deny
+- name: ufw-standardrichtlinie für eingehenden verkehr auf deny setzen
   community.general.ufw:
     default: deny
     direction: incoming
 
-- name: Set UFW default outgoing policy to allow
+- name: ufw-standardrichtlinie für ausgehenden verkehr auf allow setzen
   community.general.ufw:
     default: allow
     direction: outgoing
 
-- name: Allow HTTP (port 80) for Traefik ingress
+- name: http (port 80) für den traefik-ingress erlauben
   community.general.ufw:
     rule: allow
     port: "80"
     proto: tcp
     comment: "HTTP Traefik ingress"
 
-- name: Allow HTTPS (port 443)
+- name: https (port 443) erlauben
   community.general.ufw:
     rule: allow
     port: "443"
@@ -141,7 +141,7 @@
     comment: "k3s API ({{ item }})"
   loop: "{{ common_ufw_k3s_api_sources }}"
 
-- name: Remove ArgoCD NodePort 30080 rules (NodePort entfällt, ArgoCD läuft über den Ingress)
+- name: regeln für den argocd-nodeport 30080 entfernen (nodeport entfällt, argocd läuft über den ingress)
   community.general.ufw:
     rule: allow
     port: "30080"
@@ -153,21 +153,21 @@
     - "100.64.0.0/10"
     - "10.99.99.0/24"
 
-- name: Remove unrestricted ArgoCD NodePort 30080 rule (manuell gesetzt, jetzt auf LAN/Tailnet begrenzt)
+- name: offene regel für den argocd-nodeport 30080 entfernen (manuell gesetzt, jetzt auf lan/tailnet begrenzt)
   community.general.ufw:
     rule: allow
     port: "30080"
     proto: tcp
     delete: true
 
-- name: Remove useless ArgoCD NodePort 30443 rule (Server spricht dort Klartext, kein TLS)
+- name: nutzlose regel für den argocd-nodeport 30443 entfernen (server spricht dort klartext, kein tls)
   community.general.ufw:
     rule: allow
     port: "30443"
     proto: tcp
     delete: true
 
-- name: Allow Tailscale WireGuard (UDP 41641)
+- name: tailscale-wireguard (udp 41641) erlauben
   community.general.ufw:
     rule: allow
     port: "41641"
@@ -196,26 +196,26 @@
     - {port: "10250", proto: tcp}
     - {port: "8472", proto: udp}
 
-- name: Allow all traffic from k3s pod CIDR
+- name: gesamten verkehr aus dem pod-cidr von k3s erlauben
   community.general.ufw:
     rule: allow
     src: "{{ k3s_pod_cidr }}"
     comment: "k3s pod CIDR traffic"
 
-- name: Allow all traffic from k3s service CIDR
+- name: gesamten verkehr aus dem service-cidr von k3s erlauben
   community.general.ufw:
     rule: allow
     src: "{{ k3s_service_cidr }}"
     comment: "k3s service CIDR traffic"
 
-- name: Allow all traffic from local LAN subnet
+- name: gesamten verkehr aus dem lokalen lan erlauben
   community.general.ufw:
     rule: allow
     src: "{{ local_subnet }}"
     comment: "Local LAN subnet access"
   when: common_ufw_lan_allow_all | bool
 
-- name: Allow all traffic from Tailscale network
+- name: gesamten verkehr aus dem tailscale-netz erlauben
   community.general.ufw:
     rule: allow
     src: "100.64.0.0/10"
@@ -254,23 +254,23 @@
     delete: true
   when: not (common_ufw_tailnet_allow_all | bool)
 
-- name: Enable UFW
+- name: ufw aktivieren
   community.general.ufw:
     state: enabled
 
-- name: Verify UFW is active
+- name: prüfen dass ufw aktiv ist
   ansible.builtin.command: ufw status verbose
   register: common_ufw_status
   changed_when: false
 
-- name: Display UFW status
+- name: ufw-status anzeigen
   ansible.builtin.debug:
     var: common_ufw_status.stdout_lines
 
-- name: Configure static IP via Netplan
+- name: statische ip per netplan einrichten
   when: network_configure_static_ip | bool
   block:
-    - name: Find existing Netplan configs
+    - name: vorhandene netplan-konfigurationen suchen
       ansible.builtin.find:
         paths: /etc/netplan
         patterns:
@@ -280,7 +280,7 @@
           - "99-static.yaml"
       register: common_netplan_existing
 
-    - name: Remove existing Netplan DHCP configs
+    - name: vorhandene netplan-dhcp-konfigurationen entfernen
       ansible.builtin.file:
         path: "{{ item.path }}"
         state: absent
@@ -288,7 +288,7 @@
       loop_control:
         label: "{{ item.path }}"
 
-    - name: Deploy static Netplan configuration
+    - name: statische netplan-konfiguration ablegen
       ansible.builtin.template:
         src: netplan-static.yaml.j2
         dest: /etc/netplan/99-static.yaml
@@ -296,13 +296,13 @@
         group: root
         mode: '0600'
 
-    - name: Apply Netplan configuration (connection will briefly drop)
+    - name: netplan-konfiguration anwenden (verbindung bricht kurz ab)
       ansible.builtin.command: netplan apply
       async: 10
       poll: 0
       changed_when: true
 
-    - name: Wait for server to be reachable at the new static IP
+    - name: warten bis der server unter der neuen statischen ip erreichbar ist
       ansible.builtin.wait_for:
         host: "{{ network_static_ip }}"
         port: 22
@@ -311,19 +311,19 @@
       delegate_to: localhost
       become: false
 
-- name: Check whether a reboot is required (kernel/libc updates)
+- name: prüfen ob ein reboot nötig ist (kernel-/libc-updates)
   ansible.builtin.stat:
     path: /var/run/reboot-required
   register: common_reboot_required
 
-- name: Reboot bei k3s-Servern nur nach etcd-Prüfung freigeben
+- name: reboot bei k3s-servern nur nach etcd-prüfung freigeben
   ansible.builtin.import_role:
     name: k3s_reboot_guard
   when:
     - common_reboot_required.stat.exists
     - auto_reboot_if_required | bool
 
-- name: Reboot the server because /var/run/reboot-required is set
+- name: server neu starten, weil /var/run/reboot-required gesetzt ist
   ansible.builtin.reboot:
     msg: "Reboot triggered by Ansible: kernel/libc update applied"
     connect_timeout: 5
@@ -337,7 +337,7 @@
     - k3s_reboot_guard_ok | default(true) | bool
     - lookup('env', 'SEMAPHORE_TASK_ID') | length == 0
 
-- name: Reboot required but auto_reboot_if_required is false — warn the operator
+- name: reboot nötig, aber auto_reboot_if_required ist false — betreiber warnen
   ansible.builtin.debug:
     msg: >
       A reboot is required (/var/run/reboot-required exists) but
@@ -348,7 +348,7 @@
     - not (auto_reboot_if_required | bool)
     - lookup('env', 'SEMAPHORE_TASK_ID') | length == 0
 
-- name: Reboot required but Semaphore is running this task — warn instead of self-killing
+- name: reboot nötig, aber semaphore führt diesen task aus — warnen statt sich selbst abzuschießen
   ansible.builtin.debug:
     msg: >
       A reboot is required (/var/run/reboot-required exists) but this playbook

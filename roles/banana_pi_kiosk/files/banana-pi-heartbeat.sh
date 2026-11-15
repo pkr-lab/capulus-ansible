@@ -6,4 +6,4 @@ STATION="${STATION:?STATION not set}"
 
 curl --fail --silent --show-error --max-time 5 \
   "${BASE_URL}/heartbeat?station=${STATION}" >/dev/null || \
-  logger -t banana-pi-heartbeat "heartbeat fuer ${STATION} fehlgeschlagen"
+  logger -t banana-pi-heartbeat "heartbeat für ${STATION} fehlgeschlagen"

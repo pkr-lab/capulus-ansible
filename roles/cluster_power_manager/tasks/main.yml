@@ -58,7 +58,7 @@
     group: root
     mode: "0755"
   when: cluster_power_manager_enabled | bool
-  notify: Restart cluster power manager
+  notify: cluster-power-manager neu starten
 
 - name: Konfiguration templaten
   ansible.builtin.template:
@@ -68,7 +68,7 @@
     group: root
     mode: "0600"
   when: cluster_power_manager_enabled | bool
-  notify: Restart cluster power manager
+  notify: cluster-power-manager neu starten
 
 - name: systemd-Unit deployen
   ansible.builtin.template:
@@ -78,7 +78,7 @@
     group: root
     mode: "0644"
   when: cluster_power_manager_enabled | bool
-  notify: Restart cluster power manager
+  notify: cluster-power-manager neu starten
 
 - name: cluster-power-manager aktivieren und starten
   ansible.builtin.systemd:

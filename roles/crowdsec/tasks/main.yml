@@ -1,9 +1,9 @@
-- name: Install gnupg for the key handling
+- name: gnupg für die schlüsselbehandlung installieren
   ansible.builtin.apt:
     name: gnupg
     state: present
 
-- name: Create APT keyrings directory
+- name: verzeichnis für apt-keyrings anlegen
   ansible.builtin.file:
     path: /etc/apt/keyrings
     state: directory
@@ -11,19 +11,19 @@
     group: root
     mode: '0755'
 
-- name: Check whether the CrowdSec repository keyring exists
+- name: prüfen ob der keyring des crowdsec-repositorys existiert
   ansible.builtin.stat:
     path: /etc/apt/keyrings/crowdsec_crowdsec-archive-keyring.gpg
   register: crowdsec_keyring
 
-- name: Download CrowdSec repository key
+- name: schlüssel des crowdsec-repositorys herunterladen
   ansible.builtin.get_url:
     url: https://packagecloud.io/crowdsec/crowdsec/gpgkey
     dest: /tmp/crowdsec-repo.gpgkey
     mode: '0600'
   when: not crowdsec_keyring.stat.exists
 
-- name: Create temporary GnuPG home
+- name: temporäres gnupg-home anlegen
   ansible.builtin.tempfile:
     state: directory
     prefix: crowdsec-gnupg-
@@ -31,19 +31,19 @@
   changed_when: false
   check_mode: false
 
-- name: Convert CrowdSec repository key to a keyring
+- name: schlüssel des crowdsec-repositorys in einen keyring umwandeln
   ansible.builtin.command: >-
     gpg --homedir {{ crowdsec_gnupg_home.path }} --dearmor
     --output /etc/apt/keyrings/crowdsec_crowdsec-archive-keyring.gpg /tmp/crowdsec-repo.gpgkey
   changed_when: true
   when: not crowdsec_keyring.stat.exists
 
-- name: Remove downloaded CrowdSec repository key
+- name: heruntergeladenen schlüssel des crowdsec-repositorys entfernen
   ansible.builtin.file:
     path: /tmp/crowdsec-repo.gpgkey
     state: absent
 
-- name: Read CrowdSec keyring fingerprint
+- name: fingerprint des crowdsec-keyrings lesen
   ansible.builtin.command: >-
     gpg --homedir {{ crowdsec_gnupg_home.path }} --show-keys --with-colons --fingerprint
     /etc/apt/keyrings/crowdsec_crowdsec-archive-keyring.gpg
@@ -52,14 +52,14 @@
   check_mode: false
   when: crowdsec_keyring.stat.exists or not ansible_check_mode
 
-- name: Remove temporary GnuPG home
+- name: temporäres gnupg-home entfernen
   ansible.builtin.file:
     path: "{{ crowdsec_gnupg_home.path }}"
     state: absent
   changed_when: false
   check_mode: false
 
-- name: Verify CrowdSec repository key fingerprint
+- name: fingerprint des crowdsec-repository-schlüssels prüfen
   ansible.builtin.assert:
     that:
       - "('fpr:::::::::' ~ crowdsec_repo_key_fingerprint ~ ':') in crowdsec_key_info.stdout"
@@ -69,7 +69,7 @@
       (https://github.com/pkr-lab/pkr-lab-docs/blob/main/capulus-ansible/6-hintergruende/60020-ansible-rollen.md, Abschnitt Installer und Prüfsummen).
   when: crowdsec_key_info.stdout is defined
 
-- name: Write CrowdSec APT repository
+- name: apt-repository für crowdsec eintragen
   ansible.builtin.copy:
     dest: /etc/apt/sources.list.d/crowdsec_crowdsec.list
     content: |
@@ -79,36 +79,36 @@
     group: root
     mode: '0644'
 
-- name: Install crowdsec package
+- name: paket crowdsec installieren
   ansible.builtin.apt:
     name: crowdsec
     state: "{{ 'latest' if auto_upgrade | bool else 'present' }}"
     update_cache: true
 
-- name: Enable and start crowdsec service
+- name: dienst crowdsec aktivieren und starten
   ansible.builtin.systemd:
     name: crowdsec
     state: started
     enabled: true
 
-- name: Wait for the local CrowdSec API to accept connections
+- name: warten bis die lokale crowdsec-api verbindungen annimmt
   ansible.builtin.wait_for:
     host: 127.0.0.1
     port: 8080
     timeout: 30
 
-- name: Install crowdsec-firewall-bouncer package (iptables backend, matches UFW)
+- name: paket crowdsec-firewall-bouncer installieren (iptables-backend, passend zu ufw)
   ansible.builtin.apt:
     name: crowdsec-firewall-bouncer-iptables
     state: "{{ 'latest' if auto_upgrade | bool else 'present' }}"
 
-- name: Enable and start crowdsec-firewall-bouncer service
+- name: dienst crowdsec-firewall-bouncer aktivieren und starten
   ansible.builtin.systemd:
     name: crowdsec-firewall-bouncer
     state: started
     enabled: true
 
-- name: Install CrowdSec collections
+- name: crowdsec-collections installieren
   ansible.builtin.command: "cscli collections install {{ item }}"
   loop: "{{ crowdsec_collections }}"
   register: crowdsec_collection_install
@@ -117,7 +117,7 @@
     crowdsec_collection_install.rc != 0 and
     'already installed' not in crowdsec_collection_install.stdout
 
-- name: Ensure acquisition.d directory exists
+- name: sicherstellen dass das verzeichnis acquisition.d existiert
   ansible.builtin.file:
     path: /etc/crowdsec/acquis.d
     state: directory
@@ -125,43 +125,43 @@
     group: root
     mode: '0755'
 
-- name: Deploy SSH log acquisition config (journald)
+- name: acquisition-konfiguration für ssh-logs ablegen (journald)
   ansible.builtin.template:
     src: acquis-ssh.yaml.j2
     dest: /etc/crowdsec/acquis.d/ssh.yaml
     owner: root
     group: root
     mode: '0644'
-  notify: Restart crowdsec
+  notify: crowdsec neu starten
 
-- name: Deploy Traefik log acquisition config
+- name: acquisition-konfiguration für traefik-logs ablegen
   ansible.builtin.template:
     src: acquis-traefik.yaml.j2
     dest: /etc/crowdsec/acquis.d/traefik.yaml
     owner: root
     group: root
     mode: '0644'
-  notify: Restart crowdsec
+  notify: crowdsec neu starten
 
-- name: Deploy CIDR whitelist for LAN + Tailscale
+- name: cidr-whitelist für lan und tailscale ablegen
   ansible.builtin.template:
     src: whitelist.yaml.j2
     dest: /etc/crowdsec/parsers/s02-enrich/local-whitelist.yaml
     owner: root
     group: root
     mode: '0644'
-  notify: Restart crowdsec
+  notify: crowdsec neu starten
 
-- name: Flush handlers so acquisition/whitelist changes are live before verifying
+- name: handler sofort ausführen, damit acquisition und whitelist vor der prüfung wirken
   ansible.builtin.meta: flush_handlers
 
-- name: Verify firewall bouncer registered with the local API
+- name: prüfen dass der firewall-bouncer bei der lokalen api registriert ist
   ansible.builtin.command: cscli bouncers list -o json
   register: crowdsec_bouncers
   changed_when: false
   check_mode: false
 
-- name: Warn if no bouncer is registered
+- name: warnen wenn kein bouncer registriert ist
   ansible.builtin.debug:
     msg: >
       WARNING: `cscli bouncers list` returned no registered bouncer.

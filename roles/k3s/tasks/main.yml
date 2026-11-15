@@ -1,6 +1,6 @@
 ---
 
-- name: k3s-Version für die Server festschreiben prüfen
+- name: k3s-version für die server festschreiben prüfen
   ansible.builtin.assert:
     that:
       - k3s_version | length > 0
@@ -8,13 +8,13 @@
       Im Modus {{ k3s_mode }} muss k3s_version gesetzt sein (alle Server brauchen dieselbe Version).
   when: k3s_mode in ['init', 'join']
 
-- name: Prüfen dass kein k3s-agent mehr installiert ist
+- name: prüfen dass kein k3s-agent mehr installiert ist
   ansible.builtin.stat:
     path: /etc/systemd/system/k3s-agent.service
   register: k3s_agent_unit
   when: k3s_mode == 'join'
 
-- name: Abbrechen wenn der k3s-agent noch installiert ist
+- name: abbrechen wenn der k3s-agent noch installiert ist
   ansible.builtin.fail:
     msg: >-
       Auf {{ inventory_hostname }} ist noch der k3s-agent installiert. Vor dem Beitritt als Server
@@ -23,19 +23,19 @@
     - k3s_mode == 'join'
     - k3s_agent_unit.stat.exists
 
-- name: Voraussetzungen für k3s auf dem Server herstellen
+- name: voraussetzungen für k3s auf dem server herstellen
   ansible.builtin.import_role:
     name: k3s_agent
     tasks_from: prerequisites.yml
   when: k3s_mode == 'join'
 
-- name: Firewall-Regeln für die k3s-Server anlegen
+- name: firewall-regeln für die k3s-server anlegen
   ansible.builtin.import_tasks: ufw.yml
   when:
     - k3s_mode in ['init', 'join']
     - k3s_ufw_enable | bool
 
-- name: Host-Firewall für k3s konfigurieren
+- name: host-firewall für k3s konfigurieren
   ansible.builtin.import_role:
     name: k3s_agent
     tasks_from: ufw.yml
@@ -43,7 +43,7 @@
     - k3s_mode == 'join'
     - k3s_agent_ufw_enable | default(false) | bool
 
-- name: Join-Token vom primären Server lesen
+- name: join-token vom primären server lesen
   ansible.builtin.slurp:
     src: /var/lib/rancher/k3s/server/token
   delegate_to: "{{ k3s_primary_host }}"
@@ -51,13 +51,13 @@
   no_log: true
   when: k3s_mode == 'join'
 
-- name: Join-Token als Fakt setzen
+- name: join-token als fakt setzen
   ansible.builtin.set_fact:
     k3s_join_token: "{{ k3s_join_token_raw.content | b64decode | trim }}"
   no_log: true
   when: k3s_mode == 'join'
 
-- name: Create /etc/rancher/k3s directory
+- name: verzeichnis /etc/rancher/k3s anlegen
   ansible.builtin.file:
     path: /etc/rancher/k3s
     state: directory
@@ -65,7 +65,7 @@
     group: root
     mode: '0755'
 
-- name: Template kube-apiserver audit policy
+- name: audit-policy für kube-apiserver templaten
   ansible.builtin.template:
     src: audit-policy.yaml.j2
     dest: /etc/rancher/k3s/audit-policy.yaml
@@ -74,7 +74,7 @@
     mode: '0644'
   when: k3s_audit_log_enabled | bool
 
-- name: Create /var/log/k3s directory for audit log output
+- name: verzeichnis /var/log/k3s für das audit-log anlegen
   ansible.builtin.file:
     path: /var/log/k3s
     state: directory
@@ -83,7 +83,7 @@
     mode: '0750'
   when: k3s_audit_log_enabled | bool
 
-- name: Eigene resolv.conf für kubelet und CoreDNS schreiben
+- name: eigene resolv.conf für kubelet und coredns schreiben
   ansible.builtin.copy:
     dest: /etc/rancher/k3s/resolv.conf
     owner: root
@@ -98,7 +98,7 @@
       {% endif %}
   when: k3s_resolv_nameservers | length > 0
 
-- name: Template k3s server configuration
+- name: k3s-server-konfiguration templaten
   ansible.builtin.template:
     src: k3s-config.yaml.j2
     dest: /etc/rancher/k3s/config.yaml
@@ -107,12 +107,12 @@
     mode: "{{ '0600' if k3s_mode == 'join' else '0644' }}"
   no_log: "{{ k3s_mode == 'join' }}"
 
-- name: Check if k3s is already installed
+- name: prüfen ob k3s bereits installiert ist
   ansible.builtin.stat:
     path: /usr/local/bin/k3s
   register: k3s_binary
 
-- name: Get current k3s version (if installed)
+- name: aktuelle k3s-version lesen (falls installiert)
   ansible.builtin.command: k3s --version
   register: k3s_current_version
   changed_when: false
@@ -120,7 +120,7 @@
   check_mode: false
   when: k3s_binary.stat.exists
 
-- name: Decide whether to (re)run the k3s installer
+- name: entscheiden ob der k3s-installer (erneut) laufen muss
   ansible.builtin.set_fact:
     k3s_run_installer: >-
       {{
@@ -129,7 +129,7 @@
         or (k3s_version | length == 0 and auto_upgrade | bool)
       }}
 
-- name: Download k3s install script
+- name: k3s-installationsskript herunterladen
   ansible.builtin.get_url:
     url: "{{ k3s_installer_url }}"
     checksum: "sha256:{{ k3s_installer_sha256 }}"
@@ -138,7 +138,7 @@
     force: true
   when: k3s_run_installer
 
-- name: Install or upgrade k3s (pinned version or latest in channel)
+- name: k3s installieren oder aktualisieren (gepinnte version oder neueste im kanal)
   ansible.builtin.command: /tmp/get-k3s.sh server
   environment:
     INSTALL_K3S_VERSION: "{{ k3s_version }}"
@@ -152,19 +152,19 @@
     - "'Skipping' not in (k3s_install.stdout | default(''))"
   when: k3s_run_installer
 
-- name: Remove k3s install script
+- name: k3s-installationsskript entfernen
   ansible.builtin.file:
     path: /tmp/get-k3s.sh
     state: absent
 
-- name: Enable and start k3s service
+- name: dienst k3s aktivieren und starten
   ansible.builtin.systemd:
     name: k3s
     state: started
     enabled: true
     daemon_reload: true
 
-- name: Wait for k3s API server to be reachable (port 6443)
+- name: warten bis der k3s-api-server erreichbar ist (port 6443)
   ansible.builtin.wait_for:
     host: 127.0.0.1
     port: 6443
@@ -172,7 +172,7 @@
     delay: 5
     timeout: 120
 
-- name: Wait for k3s node to be in Ready state
+- name: warten bis der k3s-node ready ist
   ansible.builtin.command: kubectl get node {{ k3s_node_name }} --no-headers
   register: k3s_nodes_status
   retries: 30
@@ -183,11 +183,11 @@
   changed_when: false
   check_mode: false
 
-- name: Display node status
+- name: node-status anzeigen
   ansible.builtin.debug:
     var: k3s_nodes_status.stdout_lines
 
-- name: etcd-Gesundheit der API prüfen
+- name: etcd-gesundheit der api prüfen
   ansible.builtin.command: kubectl get --raw=/readyz/etcd
   register: k3s_etcd_ready
   retries: 12
@@ -199,7 +199,7 @@
   check_mode: false
   when: k3s_mode == 'join'
 
-- name: etcd-Mitglieder zählen
+- name: etcd-mitglieder zählen
   ansible.builtin.command: kubectl get nodes -l node-role.kubernetes.io/etcd -o name
   register: k3s_etcd_members
   retries: 12
@@ -211,18 +211,18 @@
   check_mode: false
   when: k3s_mode == 'join'
 
-- name: etcd-Mitglieder anzeigen
+- name: etcd-mitglieder anzeigen
   ansible.builtin.debug:
     var: k3s_etcd_members.stdout_lines
   when: k3s_mode == 'join'
 
-- name: etcd-Snapshots auf die NAS kopieren einrichten
+- name: kopie der etcd-snapshots auf die nas einrichten
   ansible.builtin.import_tasks: snapshots.yml
   when:
     - k3s_mode in ['init', 'join']
     - k3s_snapshot_copy_enabled | bool
 
-- name: Create .kube directory for ubuntu user
+- name: verzeichnis .kube für den benutzer ubuntu anlegen
   ansible.builtin.file:
     path: /home/{{ ansible_user }}/.kube
     state: directory
@@ -230,7 +230,7 @@
     group: "{{ ansible_user }}"
     mode: '0700'
 
-- name: Copy k3s kubeconfig to ubuntu user
+- name: k3s-kubeconfig für den benutzer ubuntu kopieren
   ansible.builtin.copy:
     src: /etc/rancher/k3s/k3s.yaml
     dest: /home/{{ ansible_user }}/.kube/config
@@ -239,14 +239,14 @@
     group: "{{ ansible_user }}"
     mode: '0600'
 
-- name: Set KUBECONFIG in /etc/environment (system-wide)
+- name: KUBECONFIG in /etc/environment setzen (systemweit)
   ansible.builtin.lineinfile:
     path: /etc/environment
     regexp: '^KUBECONFIG='
     line: 'KUBECONFIG=/home/{{ ansible_user }}/.kube/config'
     state: present
 
-- name: Set KUBECONFIG in ubuntu user's .bashrc
+- name: KUBECONFIG in der .bashrc des benutzers ubuntu setzen
   ansible.builtin.lineinfile:
     path: /home/{{ ansible_user }}/.bashrc
     regexp: '^export KUBECONFIG='
@@ -257,7 +257,7 @@
     group: "{{ ansible_user }}"
     mode: '0644'
 
-- name: Add kubectl completion and `k` alias to ubuntu user's .bashrc
+- name: kubectl-vervollständigung und alias `k` in der .bashrc des benutzers ubuntu eintragen
   ansible.builtin.blockinfile:
     path: /home/{{ ansible_user }}/.bashrc
     marker: "# {mark} ANSIBLE MANAGED BLOCK — kubectl"
@@ -273,12 +273,12 @@
     group: "{{ ansible_user }}"
     mode: '0644'
 
-- name: Check if Helm is already installed
+- name: prüfen ob helm bereits installiert ist
   ansible.builtin.stat:
     path: /usr/local/bin/helm
   register: k3s_helm_binary
 
-- name: Get installed Helm version
+- name: installierte helm-version lesen
   ansible.builtin.command: /usr/local/bin/helm version --short
   register: k3s_helm_installed
   changed_when: false
@@ -286,7 +286,7 @@
   check_mode: false
   when: k3s_helm_binary.stat.exists
 
-- name: Decide whether to (re)install Helm
+- name: entscheiden ob helm (erneut) installiert werden muss
   ansible.builtin.set_fact:
     k3s_install_helm: >-
       {{
@@ -294,7 +294,7 @@
         or (k3s_helm_release not in (k3s_helm_installed.stdout | default('')))
       }}
 
-- name: Download Helm release
+- name: helm-release herunterladen
   ansible.builtin.get_url:
     url: "https://get.helm.sh/helm-{{ k3s_helm_release }}-linux-{{ k3s_helm_arch }}.tar.gz"
     checksum: "sha256:https://get.helm.sh/helm-{{ k3s_helm_release }}-linux-{{ k3s_helm_arch }}.tar.gz.sha256sum"
@@ -302,7 +302,7 @@
     mode: '0644'
   when: k3s_install_helm
 
-- name: Install Helm binary
+- name: helm-binary installieren
   ansible.builtin.unarchive:
     src: /tmp/helm.tar.gz
     dest: /usr/local/bin
@@ -315,7 +315,7 @@
     - k3s_install_helm
     - not ansible_check_mode
 
-- name: Set Helm binary permissions
+- name: rechte des helm-binarys setzen
   ansible.builtin.file:
     path: /usr/local/bin/helm
     owner: root
@@ -325,12 +325,12 @@
     - k3s_install_helm
     - not ansible_check_mode
 
-- name: Remove Helm archive
+- name: helm-archiv entfernen
   ansible.builtin.file:
     path: /tmp/helm.tar.gz
     state: absent
 
-- name: Verify Helm installation
+- name: helm-installation prüfen
   ansible.builtin.command: helm version --short
   register: k3s_helm_version
   changed_when: false
@@ -338,11 +338,11 @@
   environment:
     KUBECONFIG: /etc/rancher/k3s/k3s.yaml
 
-- name: Display Helm version
+- name: helm-version anzeigen
   ansible.builtin.debug:
     msg: "Helm installed: {{ k3s_helm_version.stdout }}"
 
-- name: Wait for core system pods to be ready
+- name: warten bis die system-pods bereit sind
   ansible.builtin.command: >
     kubectl wait --for=condition=Ready pods
     --all
@@ -357,7 +357,7 @@
     - k3s_core_pods_ready.rc != 0
     - "'no matching resources' not in k3s_core_pods_ready.stderr"
 
-- name: Get system pod status
+- name: status der system-pods lesen
   ansible.builtin.command: kubectl get pods -n kube-system --no-headers
   register: k3s_system_pods
   changed_when: false
@@ -365,6 +365,6 @@
   environment:
     KUBECONFIG: /etc/rancher/k3s/k3s.yaml
 
-- name: Show system pod status
+- name: status der system-pods anzeigen
   ansible.builtin.debug:
     var: k3s_system_pods.stdout_lines
