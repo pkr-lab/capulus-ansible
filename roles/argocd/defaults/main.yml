@@ -27,7 +27,7 @@ argocd_platform_apps:
   - coredns-custom
   - nas-storage
   - immich-storage
-  - minio
+  - garage
   - argo-workflows
   - semaphore
   - headlamp
@@ -77,7 +77,7 @@ argocd_network_policy_refined_namespaces:
   - coredns-custom
   - nas-storage
   - immich-storage
-  - minio
+  - garage
   - argo-workflows
   - semaphore
   - headlamp
@@ -106,5 +106,5 @@ argocd_network_policy_extra_ingress:
     - ticket-gate
   ntfy-bridge:
     - monitoring
-  minio:
+  garage:
     - argo-workflows
