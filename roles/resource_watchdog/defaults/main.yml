@@ -18,9 +18,9 @@ resource_watchdog_cpu_warn_sustain_seconds: 60
 resource_watchdog_ram_warn_threshold: 80
 resource_watchdog_ram_warn_sustain_seconds: 60
 
-resource_watchdog_ntfy_host: "ntfy.tech.homeserver"
-resource_watchdog_ntfy_ip: "{{ network_static_ip }}"
-resource_watchdog_ntfy_topic: "Home-Lab-System"
+resource_watchdog_ntfy_host: "{{ homelab_ntfy_host }}"
+resource_watchdog_ntfy_ip: "{{ homelab_ntfy_ip }}"
+resource_watchdog_ntfy_topic: "{{ homelab_ntfy_topic }}"
 
 resource_watchdog_metrics:
   - name: cpu

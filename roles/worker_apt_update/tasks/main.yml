@@ -61,8 +61,41 @@
         cmd: >-
           kubectl drain {{ worker_apt_update_k3s_node_name }}
           --ignore-daemonsets --delete-emptydir-data --timeout=120s
+      register: worker_apt_update_drain
       changed_when: true
       failed_when: false
+
+- name: drain-ergebnis auswerten
+  ansible.builtin.set_fact:
+    worker_apt_update_drain_ok: >-
+      {{ worker_apt_update_drain is skipped
+         or worker_apt_update_drain.rc | default(0) == 0
+         or 'not found' in worker_apt_update_drain.stderr | default('') }}
+  when:
+    - worker_apt_update_enabled | bool
+    - worker_apt_update_reboot_flag.stat.exists
+
+- name: node nach fehlgeschlagenem drain wieder freigeben und neustart auslassen
+  when:
+    - worker_apt_update_enabled | bool
+    - worker_apt_update_reboot_flag.stat.exists
+    - k3s_reboot_guard_ok | default(true) | bool
+    - not worker_apt_update_drain_ok | default(true) | bool
+  block:
+    - name: kubectl uncordon {{ worker_apt_update_k3s_node_name }} nach fehlgeschlagenem drain
+      ansible.builtin.command: kubectl uncordon {{ worker_apt_update_k3s_node_name }}
+      delegate_to: "{{ groups['k3s_primary'][0] }}"
+      environment:
+        KUBECONFIG: "{{ worker_apt_update_kubeconfig }}"
+      changed_when: true
+      failed_when: false
+
+    - name: fehlgeschlagenen drain melden
+      ansible.builtin.debug:
+        msg: >-
+          Drain von {{ worker_apt_update_k3s_node_name }} ist fehlgeschlagen
+          (rc {{ worker_apt_update_drain.rc | default('?') }}: {{ worker_apt_update_drain.stderr | default('') | trim }}).
+          Der Neustart wurde ausgelassen, reboot-required bleibt gesetzt.
 
 - name: Reboot-erforderlich -- {{ inventory_hostname }} jetzt automatisch neu starten
   ansible.builtin.reboot:
@@ -72,12 +105,14 @@
     - worker_apt_update_enabled | bool
     - worker_apt_update_reboot_flag.stat.exists
     - k3s_reboot_guard_ok | default(true) | bool
+    - worker_apt_update_drain_ok | default(true) | bool
 
 - name: k3s-Server nach dem Neustart wieder Ready und schedulable machen
   when:
     - worker_apt_update_enabled | bool
     - worker_apt_update_reboot_flag.stat.exists
     - k3s_reboot_guard_ok | default(true) | bool
+    - worker_apt_update_drain_ok | default(true) | bool
     - inventory_hostname in groups['k3s_servers'] | default([])
   delegate_to: "{{ groups['k3s_servers'] | difference([inventory_hostname]) | first }}"
   environment:
@@ -115,3 +150,4 @@
     - worker_apt_update_enabled | bool
     - worker_apt_update_reboot_flag.stat.exists
     - k3s_reboot_guard_ok | default(true) | bool
+    - worker_apt_update_drain_ok | default(true) | bool

@@ -26,7 +26,7 @@ check: ## Dry-run the full playbook (no changes applied).
 	ansible-playbook -i $(INVENTORY) $(PLAYBOOK) --check --diff $(VAULT_OPTS)
 
 .PHONY: ssh-hardening
-ssh-hardening: ## Apply the ssh_hardening role (key-only SSH) on the k3s servers, worker-1, prod-vm, entw-vm and the kiosk Pis.
+ssh-hardening: ## Apply the ssh_hardening role (key-only SSH) on the k3s servers, worker-1, prod-vm, entw-vm, the kiosk Pis, ollama-pc and alert-caller-vm.
 	ansible-playbook -i $(INVENTORY) $(PLAYBOOK) --tags ssh-hardening $(VAULT_OPTS)
 	ansible-playbook -i $(INVENTORY) $(CP1_PLAYBOOK) --tags ssh-hardening $(VAULT_OPTS)
 	ansible-playbook -i $(INVENTORY) $(HS3_PLAYBOOK) --tags ssh-hardening $(VAULT_OPTS)
@@ -34,6 +34,8 @@ ssh-hardening: ## Apply the ssh_hardening role (key-only SSH) on the k3s servers
 	ansible-playbook -i $(INVENTORY) $(ENTW_PLAYBOOK) --tags ssh-hardening $(VAULT_OPTS)
 	ansible-playbook -i $(INVENTORY) banana-pi-kiosks.yml --tags ssh-hardening $(VAULT_OPTS)
 	ansible-playbook -i $(INVENTORY) xibo-kiosks.yml --tags ssh-hardening $(VAULT_OPTS)
+	ansible-playbook -i $(INVENTORY) $(OLLAMA_PC_PLAYBOOK) --tags ssh-hardening --ask-become-pass $(VAULT_OPTS)
+	ansible-playbook -i $(INVENTORY) alert-caller.yml --limit alert_callers --tags ssh-hardening $(VAULT_OPTS)
 
 .PHONY: install
 install: deps ## Provision the home server end-to-end.
@@ -160,15 +162,6 @@ worker-apt-update: ## Manuelles apt-Update auf controlplane-1 + worker-1 (läuft
 	ansible-playbook -i $(INVENTORY) $(CP1_PLAYBOOK) --tags apt-update $(VAULT_OPTS)
 	ansible-playbook -i $(INVENTORY) $(HS3_PLAYBOOK) --tags apt-update $(VAULT_OPTS)
 
-.PHONY: alarm-kiosks alarm-kiosks-check
-ALARM_PLAYBOOK := alarm-kiosks.yml
-
-alarm-kiosks: ## Alarmmonitor-Kiosks einrichten (Raspberry Pis, ALAMOS AMweb).
-	ansible-playbook -i $(INVENTORY) $(ALARM_PLAYBOOK) $(VAULT_OPTS)
-
-alarm-kiosks-check: ## Dry-run des Alarmmonitor-Kiosk-Playbooks (keine Änderungen).
-	ansible-playbook -i $(INVENTORY) $(ALARM_PLAYBOOK) --check --diff $(VAULT_OPTS)
-
 .PHONY: xibo-kiosks xibo-kiosks-check
 XIBO_PLAYBOOK := xibo-kiosks.yml
 
@@ -215,9 +208,14 @@ CORE_DIR ?=
 render-bootstrap: ## Regenerate argocd/bootstrap/ in a capulus-core checkout: make render-bootstrap CORE_DIR=/path/to/capulus-core
 	ansible-playbook render-bootstrap.yml --connection local -e capulus_core_dir=$(CORE_DIR)
 
-.PHONY: vault-edit
-vault-edit: ## Edit the vault-encrypted vars file.
-	ansible-vault edit group_vars/all.yml
+.PHONY: vault-edit vault-encrypt-string
+vault-edit: ## group_vars/all.yml im Editor öffnen (Klartext mit inline verschlüsselten !vault-Werten).
+	$${EDITOR:-vi} group_vars/all.yml
+
+NAME ?=
+vault-encrypt-string: ## Einen Wert für group_vars/host_vars verschlüsseln: make vault-encrypt-string NAME=<variable>
+	@test -n "$(NAME)" || { echo "NAME=<variable> angeben"; exit 1; }
+	ansible-vault encrypt_string --ask-vault-pass --stdin-name '$(NAME)'
 
 .PHONY: user-inventory-edit
 USER_INVENTORY_FILE := group_vars/user_inventory_vault.yml
@@ -233,7 +231,8 @@ vaultwarden-restore: ## Vaultwarden-Daten aus der NAS-Backup-PVC wiederherstelle
 
 .PHONY: clean
 clean: ## Remove cached collections and temp artifacts.
-	rm -rf ~/.ansible/collections/ansible_collections/{ansible,community,kubernetes}
+	rm -rf ~/.ansible/collections/ansible_collections/ansible/posix
+	rm -rf ~/.ansible/collections/ansible_collections/community/general
 
 .PHONY: hooks
 hooks: ## Install the commit-msg hook (Conventional Commits).

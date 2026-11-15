@@ -49,6 +49,7 @@
 - name: ollama-installationsskript herunterladen
   ansible.builtin.get_url:
     url: "{{ ollama_pc_install_script_url }}"
+    checksum: "sha256:{{ ollama_pc_install_script_sha256 }}"
     dest: /usr/local/share/ollama-install.sh
     owner: root
     group: root
@@ -225,7 +226,10 @@
     enabled: false
     state: stopped
   when: not (ollama_pc_idle_suspend_enabled | bool)
-  failed_when: false
+  register: ollama_pc_deaktivieren_result
+  failed_when:
+    - ollama_pc_deaktivieren_result is failed
+    - "'Could not find' not in (ollama_pc_deaktivieren_result.msg | default(''))"
 
 - name: ufw-regeln für ssh anlegen
   community.general.ufw:
