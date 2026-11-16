@@ -17,6 +17,8 @@ cluster_power_manager_min_uptime_seconds: 300
 
 cluster_power_manager_ready_timeout_seconds: 120
 
+cluster_power_manager_unplanned_off_grace_seconds: 600
+
 cluster_power_manager_state_dir: /var/lib/cluster-power-manager
 
 cluster_power_manager_kubeconfig: /etc/rancher/k3s/k3s.yaml
