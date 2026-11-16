@@ -24,6 +24,7 @@ ntfy_auth_args=()
 if [ -r "$NTFY_AUTH_HEADER_FILE" ]; then
   ntfy_auth_args=(-H "@${NTFY_AUTH_HEADER_FILE}")
 fi
+UNPLANNED_OFF_GRACE_SECONDS="${UNPLANNED_OFF_GRACE_SECONDS:-600}"
 WORKERS="${WORKERS:?WORKERS not set (Format: name:ip:mac name:ip:mac ...)}"
 DRY_RUN="${DRY_RUN:-0}"
 
@@ -106,6 +107,34 @@ wake_worker() {
   date +%s > "${STATE_DIR}/${name}.woke_at"
 }
 
+reconcile_unreachable() {
+  local name="$1" ip="$2" now="$3" since unsched
+  local since_file="${STATE_DIR}/${name}.unreachable_since"
+  if is_reachable "$ip"; then
+    rm -f "$since_file"
+    return 0
+  fi
+  if [ ! -f "$since_file" ]; then
+    echo "$now" > "$since_file"
+    return 0
+  fi
+  since="$(cat "$since_file")"
+  if (( now - since < UNPLANNED_OFF_GRACE_SECONDS )); then
+    return 0
+  fi
+  unsched="$(kubectl get node "$name" -o jsonpath='{.spec.unschedulable}' 2>/dev/null || true)"
+  if [ "$unsched" = "true" ]; then
+    return 0
+  fi
+  logger -t cluster-power-manager "${name} seit $(( (now - since) / 60 )) min nicht erreichbar, aber nicht cordoned -- cordon"
+  notify "Worker unerwartet aus" "${name} (${ip}) ist seit $(( (now - since) / 60 )) min nicht erreichbar und war nicht cordoned (kein geplanter Shutdown). Node wird cordoned."
+  if [ "$DRY_RUN" = "1" ]; then
+    return 0
+  fi
+  kubectl cordon "$name" || true
+  rm -f "${STATE_DIR}/${name}.woke_at"
+}
+
 shutdown_worker() {
   local name="$1" ip="$2"
   logger -t cluster-power-manager "shutting down ${name} -- homeserver load sustained low"
@@ -138,6 +167,11 @@ while true; do
   cpu="$(cpu_percent)"
   ram="$(ram_percent)"
   now="$(date +%s)"
+
+  for entry in "${worker_arr[@]}"; do
+    rest="${entry#*:}"
+    reconcile_unreachable "${entry%%:*}" "${rest%%:*}" "$now"
+  done
 
   high=0
   if [ "$cpu" -ge "$CPU_SCALE_UP_THRESHOLD" ] || [ "$ram" -ge "$RAM_SCALE_UP_THRESHOLD" ]; then
