@@ -39,6 +39,7 @@ argocd_workloads_apps:
   - carplay-api
   - github-release-watcher
   - isc-news-bot
+  - isc-manager-bot
   - mattermost
   - mdm
   - mediamtx
@@ -59,6 +60,7 @@ argocd_network_policy_refined_namespaces:
   - carplay-api
   - github-release-watcher
   - isc-news-bot
+  - isc-manager-bot
   - mdm
   - mediamtx
   - uptime-kuma
